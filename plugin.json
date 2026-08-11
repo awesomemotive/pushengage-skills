@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pushengage",
+  "version": "1.0.0",
+  "description": "Integrate and debug the PushEngage push-notification SDK across iOS, Android, Flutter, and React Native.",
+  "author": {
+    "name": "PushEngage",
+    "url": "https://www.pushengage.com"
+  },
+  "homepage": "https://www.pushengage.com",
+  "repository": "https://github.com/awesomemotive/pushengage-skills",
+  "license": "MIT",
+  "keywords": ["pushengage", "push-notifications", "apns", "fcm", "ios", "android", "flutter", "react-native"]
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "pushengage": {
+      "command": "npx",
+      "args": ["-y", "@pushengage/mcp"]
+    }
+  }
+}
