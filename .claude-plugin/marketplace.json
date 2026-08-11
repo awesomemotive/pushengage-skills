@@ -1,0 +1,26 @@
+{
+  "name": "pushengage",
+  "owner": {
+    "name": "PushEngage",
+    "url": "https://www.pushengage.com"
+  },
+  "metadata": {
+    "description": "Official PushEngage plugin marketplace for Claude Code.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "pushengage",
+      "displayName": "PushEngage",
+      "source": ".",
+      "description": "Integrate and debug the PushEngage push-notification SDK across iOS, Android, Flutter, and React Native.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "author": {
+        "name": "PushEngage",
+        "url": "https://www.pushengage.com"
+      },
+      "keywords": ["pushengage", "push-notifications", "apns", "fcm", "ios", "android", "flutter", "react-native"]
+    }
+  ]
+}
