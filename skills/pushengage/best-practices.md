@@ -50,9 +50,9 @@ Platform-specific rules live in each platform spoke's `best-practices.md` (e.g.,
 
 ## XP-BP-06 — Pin the SDK version per the platform spoke's version matrix
 
-**Rule:** Native iOS and Android integrations pin to an exact version (`pod 'PushEngage', '1.0.0'`, exact gradle coordinate). Flutter and React Native follow their own spoke rules (FLUTTER-BP-10, RN-BP-10), which allow a caret pin at the plugin layer.
+**Rule:** Native iOS and Android integrations pin to an exact version (`pod 'PushEngage', '1.1.0'`, exact gradle coordinate). Flutter and React Native follow their own spoke rules (FLUTTER-BP-10, RN-BP-10), which allow a caret pin at the plugin layer.
 
-**Why:** The native SDKs are now at iOS 1.0.0 / Android 0.1.0 and the plugins at Flutter 1.0.0 / React Native 1.0.1; a non-exact range on a native pod or gradle dep can still quietly upgrade and break a working integration, so pin native deps exactly. The plugin layers (pub/npm) pin their transitive native SDKs exactly, so the caret there doesn't reintroduce drift.
+**Why:** The native SDKs are now at iOS 1.1.0 / Android 1.0.0 and the plugins at Flutter 1.1.0 / React Native 1.1.0 (the first versions with In-App Messaging); a non-exact range on a native pod or gradle dep can still quietly upgrade and break a working integration, so pin native deps exactly. The plugin layers (pub/npm) pin their transitive native SDKs exactly, so the caret there doesn't reintroduce drift.
 
 **How to apply:** Audit check: flag any non-exact version pin in Podfile / Package.swift / build.gradle for the PushEngage SDK. For pubspec.yaml / package.json, defer to FLUTTER-BP-10 / RN-BP-10 — don't flag the caret form those rules prescribe.
 
@@ -63,6 +63,38 @@ Platform-specific rules live in each platform spoke's `best-practices.md` (e.g.,
 **Why:** SDK logs include subscriber/device identifiers and full notification payloads. Shipping them in a production build exposes user data and bloats device logs.
 
 **How to apply:** Audit check: flag any unconditional `enableLogging = true` / `enableLogs(true)` that isn't gated by `#if DEBUG` (iOS), `BuildConfig.DEBUG` (Android), or equivalent.
+
+## XP-BP-08 — IAM trigger event names and condition types must match the dashboard exactly
+
+**Rule:** The `eventName` passed to `triggerIAMEvent(...)` must equal the campaign's trigger event **character-for-character, case included**. Pass parameter values in their natural type (numbers as numbers) and have the dashboard condition typed `number` / `version` / `boolean` when the comparison isn't textual.
+
+**Why:** Matching is exact — `Cart_Abandoned` never matches `cart_abandoned`, and there is no fuzzy fallback. Values are stringified before matching; the condition's declared type decides how that text is compared, so a `string`-typed `greater than 100` compares alphabetically (or never matches) instead of numerically. A blank name is rejected with `400 Event name is required` rather than silently matching nothing.
+
+**How to apply:** When writing or reviewing a `triggerIAMEvent` call, ask the customer for the dashboard's exact event string and compare. If a campaign "never shows", this is checklist item 4 in `in-app-messaging.md`. No static audit — the dashboard side isn't in the repo.
+
+## XP-BP-09 — Route IAM in-app navigation through `custom` actions; `open_url` is external http(s) only
+
+**Rule:** Don't configure IAM `open_url` buttons with app-scheme deep links (`myapp://…`) — they are refused. For in-app navigation use a `custom` action, give it an Action name on the dashboard, and switch on `parameters["action"]` in the platform's custom-action hook (never on `actionId`, which is a dashboard-generated internal key). Don't expect IAM taps to arrive on the push deep-link listeners (`setNotificationOpenHandler`, `deepLinkStream`, `onValueChanged`).
+
+**Why:** `open_url` opens the external browser and accepts only `http`/`https` (a missing scheme becomes `https`). A `url` parameter on a `custom` action is forwarded verbatim, never opened. IAM and push are separate pipelines on every platform.
+
+**How to apply:** If the customer says "the in-app button with my deep link does nothing", check the action type; if it's `open_url` with a custom scheme, switch it to `custom` and add the handler. If they wired IAM routing into their push listener, move it to the IAM hook.
+
+## XP-BP-10 — IAM needs only the App ID, but subscriber-data audiences need a push subscription
+
+**Rule:** Never make `requestNotificationPermission()` / `subscribe()` a prerequisite for in-app messaging. Do warn that campaigns whose audience uses subscriber data (`segments`, `attr.*`, `city`/`state`/`geo_country`, `has_unsubscribed`) are held back until the device is a push subscriber and the subscriber record has been fetched once.
+
+**Why:** IAM syncs and displays on the App ID alone. Subscriber-backed audience rules are deliberately *skipped* (not evaluated) without a subscriber record, so an IAM-only integration never shows those campaigns, and a fresh install typically first evaluates them on the second app open. Device-data rules are unaffected.
+
+**How to apply:** When a customer plans IAM without push, or tests on a simulator / build without push entitlements, tell them segment- and attribute-targeted campaigns won't appear and suggest device-data targeting for those tests.
+
+## XP-BP-11 — Every IAM campaign must carry its own way out
+
+**Rule:** Each in-app campaign should contain a button wired to a **Dismiss** action (or set an auto-dismiss duration). Banners and full-screen messages especially, since tap-outside has little or no outside area there.
+
+**Why:** The SDK draws **no** close button. A banner with no auto-dismiss, no tap-to-dismiss and no working button is genuinely unclosable. Any recognised button dismisses the message, so one Dismiss button is enough.
+
+**How to apply:** Dashboard-side authoring rule — surface it when walking the customer through campaign creation or when they report a message they "can't close". No static audit.
 
 ---
 

@@ -94,7 +94,7 @@ Don't read further than this. The audit is bounded.
 **Read:** Podfile / Package.swift / `Package.resolved`.
 **Pattern:** `PushEngage` OR `PushEngageExtension` dep using `~>`, `^`, or no version specified. (From `1.0.0` both pods exist; the extension target's `PushEngageExtension` dep must be pinned exactly too.)
 **Category:** Worth fixing.
-**Fix:** pin exactly to the version in `version-matrix.md` (`1.0.0` for both pods).
+**Fix:** pin exactly to the version in `version-matrix.md` (`1.1.0` for both pods).
 
 ## Check IOS-AUDIT-09 — `enableLogging = true` unconditional (XP-BP-07)
 
@@ -137,6 +137,28 @@ Don't read further than this. The audit is bounded.
 **Category:** Likely cause (compile error — e.g. `Type 'PushEngage' has no member 'didReceiveNotificationExtensionRequest'`).
 **Reference:** KI-006.
 **Fix:** apply the three migration steps — dependency `pod 'PushEngage'` → `pod 'PushEngageExtension'` (or SPM product), `import PushEngage` → `import PushEngageExtension`, and class prefix `PushEngage.` → `PushEngageExtension.` for the three NSE/NCE methods. See `nse-setup.md` / `nce-setup.md`.
+
+## Check IOS-AUDIT-16 — IAM background refresh half-configured (IOS-BP-15)
+
+**Read:** main app Info.plist.
+**Pattern:** `BGTaskSchedulerPermittedIdentifiers` contains `com.pushengage.iam.refresh` but `UIBackgroundModes` lacks `fetch` — OR the customer explicitly wants background campaign refresh and the identifier is missing.
+**Category:** Worth fixing (the SDK logs one line at launch and refreshes on app open only; nothing breaks).
+**Fix:** add the missing half — see `in-app-messaging.md` → "Optional: background campaign refresh". If the customer doesn't want background refresh, remove the identifier instead.
+
+## Check IOS-AUDIT-17 — Multiple / misplaced `setIAMCustomActionHandler` registrations (IOS-BP-16)
+
+**Read:** all `.swift` / `.m` files referencing `setIAMCustomActionHandler`.
+**Pattern:** more than one call site, OR a call site outside the AppDelegate (e.g. a view controller's `viewDidLoad`).
+**Category:** Worth fixing (single slot — the last registration wins; other screens' custom buttons silently stop reaching the app).
+**Fix:** keep one registration in `didFinishLaunchingWithOptions` after `setInitialInfo`; route on `parameters["action"]` from there (not `actionId`). Quote `in-app-messaging.md`.
+
+## Check IOS-AUDIT-18 — Deployment target below iOS 15.0 with SDK `1.1.0` (IOS-BP-17)
+
+**Read:** `Podfile` (`platform :ios, 'X.Y'`), `Package.swift` (`platforms`), `project.pbxproj` (`IPHONEOS_DEPLOYMENT_TARGET`) for the app and NSE/NCE targets.
+**Pattern:** any PushEngage-linking target with a deployment target `< 15.0` while `PushEngage` / `PushEngageExtension` is pinned to `1.1.0` (or resolves to it).
+**Category:** Likely cause (`pod install` fails with "`PushEngage (1.1.0)` … does not support `iOS <target>`"; SPM resolution error).
+**Reference:** KI-009.
+**Fix:** raise the target(s) to 15.0, or — only if iOS 12–14 support is non-negotiable — pin both pods to `1.0.0` and tell the customer IAM is unavailable there.
 
 ---
 

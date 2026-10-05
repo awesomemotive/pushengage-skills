@@ -11,13 +11,13 @@ Same pattern as `nse-setup.md`:
 1. **File → New → Target → Notification Content Extension** in Xcode.
 2. **Product name:** `NotificationContentExtension` (or match the Podfile target block name).
 3. **Bundle Identifier:** `<your-main-bundle>.NotificationContentExtension`.
-4. **Deployment target:** iOS 12 (override Xcode default of 10).
+4. **Deployment target:** iOS 15 (override Xcode default of 10).
 5. **Don't activate scheme.**
 6. Add the NCE target to `ios/Podfile`:
    ```ruby
    target 'NotificationContentExtension' do
      use_frameworks!
-     pod 'PushEngageExtension', '1.0.0'
+     pod 'PushEngageExtension', '1.1.0'
    end
    ```
 7. Run `pod install` from `ios/`.

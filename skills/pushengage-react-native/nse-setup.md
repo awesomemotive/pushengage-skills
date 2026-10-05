@@ -25,7 +25,7 @@ The NSE target must be created through Xcode's UI. Don't edit `.pbxproj` program
 10. Add the NSE target to `ios/Podfile`:
     ```ruby
     target 'NotificationServiceExtension' do
-      pod 'PushEngageExtension', '1.0.0'
+      pod 'PushEngageExtension', '1.1.0'
     end
     ```
     **NOT `pod 'PushEngage'`** — as of the 1.0.0 two-pod split, extension targets link the extension-safe `PushEngageExtension` pod, not the app-side `PushEngage` pod. (RN-AUDIT-03 / KI-RN011.)
@@ -83,10 +83,10 @@ Same template as iOS-native and Flutter. The RN project context doesn't change t
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Build error: "Application extensions cannot use PushEngage" | NSE target links the app-side `pod 'PushEngage'` instead of the extension-safe `pod 'PushEngageExtension'` | Switch the NSE target block to `pod 'PushEngageExtension', '1.0.0'`. The 1.0.0 two-pod split replaces the old `APPLICATION_EXTENSION_API_ONLY = 'No'` override (now obsolete). See `install.md` Step 3b. RN-AUDIT-03. |
+| Build error: "Application extensions cannot use PushEngage" | NSE target links the app-side `pod 'PushEngage'` instead of the extension-safe `pod 'PushEngageExtension'` | Switch the NSE target block to `pod 'PushEngageExtension', '1.1.0'`. The 1.0.0 two-pod split replaces the old `APPLICATION_EXTENSION_API_ONLY = 'No'` override (now obsolete). See `install.md` Step 3b. RN-AUDIT-03. |
 | Build error: "Pod 'PushEngageExtension' not found" | Forgot `pod install` after adding the NSE target block | `cd ios && pod install`. |
 | Build error: deployment-target mismatch (iOS 10 vs 15.1) | NSE created with Xcode default of iOS 10 | Set NSE deployment target to iOS 15.1 in Xcode (matches RN 0.78 baseline). |
-| Rich-push image doesn't display | NSE not present, OR `Podfile` pin is stale / links the wrong pod (`pod 'PushEngage'` instead of `pod 'PushEngageExtension', '1.0.0'` — KI-RN011), OR App Groups misconfigured (KI-RN007) | Walk through all four checks: target exists + builds + App Groups on both targets + Info.plist key identical. |
+| Rich-push image doesn't display | NSE not present, OR `Podfile` pin is stale / links the wrong pod (`pod 'PushEngage'` instead of `pod 'PushEngageExtension', '1.1.0'` — KI-RN011), OR App Groups misconfigured (KI-RN007) | Walk through all four checks: target exists + builds + App Groups on both targets + Info.plist key identical. |
 
 ## Edit posture
 

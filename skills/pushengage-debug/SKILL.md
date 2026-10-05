@@ -5,7 +5,7 @@ license: MIT
 compatibility: Works with any agent that supports the Agent Skills (SKILL.md) standard, including Claude Code and Cowork. Needs filesystem read access and a shell to detect the project type; some steps fetch allowlisted documentation URLs.
 metadata:
   author: PushEngage
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # PushEngage — Diagnostic Skill
@@ -36,7 +36,7 @@ Read `known-issues.md`. Detect the customer's SDK version from their Podfile / P
 
 ## Phase 3 — Symptom-driven tree
 
-Read `diagnostic-tree.md`. Ask the customer to clarify the symptom in one sentence. Branch the tree accordingly. The tree terminates at root cause or "escalate to support."
+Read `diagnostic-tree.md`. Ask the customer to clarify the symptom in one sentence. Branch the tree accordingly. The tree terminates at root cause or "escalate to support." In-app messaging symptoms (message never appears, button does nothing, custom action not received) go to Branch 8 — they are independent of the push/subscriber branches unless the campaign targets subscriber data.
 
 When branching requires SDK debug logs, read `log-readers.md` for what to ask the customer to enable and what log lines to look for.
 
@@ -50,6 +50,7 @@ PushEngage Bug Report
 
 Platform: <iOS/Android/...>
 SDK version: <x.y.z>
+Channel: <push / in-app messaging / both>
 App framework: <UIKit/SwiftUI/...>
 Integration mode: <swizzling/manual>
 

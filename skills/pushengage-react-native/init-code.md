@@ -179,6 +179,10 @@ The customer does NOT need to:
 - `ios/Podfile` — auto-edit + announce (covered in `install.md`).
 - `android/app/build.gradle`, `android/AndroidManifest.xml` — auto-edit + announce (covered in `install.md`).
 
+## In-App Messaging (optional, plugin ≥ 1.1.0)
+
+No init change and no activation call. If campaigns use `custom` buttons, add `PushEngage.onIAMCustomAction(cb)` next to `onValueChanged` in the root `useEffect` and `.remove()` it on cleanup (RN-BP-14). Don't call `setIAMCustomActionHandler` from the AppDelegate — the module owns it. Template and `triggerIAMEvent`: `in-app-messaging.md`.
+
 ## Next
 
-`permission-flow.md` for the runtime permission flow, then `nse-setup.md` for rich notifications.
+`permission-flow.md` for the runtime permission flow, then `nse-setup.md` for rich notifications. For in-app messages → `in-app-messaging.md`.

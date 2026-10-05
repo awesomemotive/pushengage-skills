@@ -40,11 +40,11 @@ Run order: read all relevant files once, apply each check, group findings by cat
 
 **Pattern:** Inside an NSE or NCE target block, any `pod 'PushEngage', '<x>'` (the old app-side pod) — e.g. `~>0.0.5`, `0.0.5`, `0.0.6` — OR `pod 'PushEngageExtension', '<x>'` where `<x>` < `1.0.0`. As of 1.0.0 extension targets must link the extension-safe `PushEngageExtension` pod, not the app-side `PushEngage` pod.
 
-**Categorize:** Likely cause — `pod 'PushEngage'` in an extension target (or a `PushEngageExtension` pin below 1.0.0) conflicts with the plugin's transitive exact `1.0.0` resolution and fails at `pod install` / breaks rich-push. A customer upgrading from the prior spoke baseline will have `pod 'PushEngage', '0.0.6'` in their NSE/NCE blocks — that is now both stale AND the wrong pod; it must move to `pod 'PushEngageExtension', '1.0.0'`.
+**Categorize:** Likely cause — `pod 'PushEngage'` in an extension target (or a `PushEngageExtension` pin other than `1.1.0`) conflicts with the plugin's transitive exact `1.1.0` resolution and fails at `pod install` / breaks rich-push. A customer upgrading from the prior spoke baseline will have `pod 'PushEngage', '0.0.6'` in their NSE/NCE blocks — that is now both stale AND the wrong pod; it must move to `pod 'PushEngageExtension', '1.1.0'`.
 
 **References:** RN-BP-06, KI-RN011.
 
-**Fix:** change to `pod 'PushEngageExtension', '1.0.0'`. After editing, `cd ios && pod install`, then clean build (Xcode → Product → Clean Build Folder).
+**Fix:** change to `pod 'PushEngageExtension', '1.1.0'`. After editing, `cd ios && pod install`, then clean build (Xcode → Product → Clean Build Folder).
 
 ---
 
@@ -53,14 +53,14 @@ Run order: read all relevant files once, apply each check, group findings by cat
 **Files to check:** `ios/Podfile`.
 
 **Pattern:** As of 1.0.0 the old `APPLICATION_EXTENSION_API_ONLY = 'No'` / `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = 'YES'` `post_install` override is **obsolete** — the conditional-compilation mechanism was replaced by the two-pod split (app target links `PushEngage`; extension targets link `PushEngageExtension`). Do NOT flag a *missing* override as a problem. Instead flag the real 1.0.0 misconfigurations:
-- An NSE/NCE target that links `pod 'PushEngage'` instead of `pod 'PushEngageExtension', '1.0.0'` (covered by RN-AUDIT-03).
+- An NSE/NCE target that links `pod 'PushEngage'` instead of `pod 'PushEngageExtension', '1.1.0'` (covered by RN-AUDIT-03).
 - A stale `APPLICATION_EXTENSION_API_ONLY = 'No'` override still present — harmless but obsolete; note it for cleanup, not as a build blocker.
 
 **Categorize:** Cosmetic for a leftover stale override; defer the real extension-pod check to RN-AUDIT-03 (Likely cause).
 
 **References:** RN-AUDIT-03.
 
-**Fix:** ensure extension targets link `pod 'PushEngageExtension', '1.0.0'` (see `install.md` Step 3b). Remove any leftover `APPLICATION_EXTENSION_API_ONLY` / `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES` overrides when convenient — they are no longer needed in 1.0.0.
+**Fix:** ensure extension targets link `pod 'PushEngageExtension', '1.1.0'` (see `install.md` Step 3b). Remove any leftover `APPLICATION_EXTENSION_API_ONLY` / `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES` overrides when convenient — they are no longer needed in 1.0.0.
 
 ---
 
@@ -198,7 +198,7 @@ Run order: read all relevant files once, apply each check, group findings by cat
 **Files to check:** `package.json`.
 
 **Pattern:** `package.json` contains:
-- `"@pushengage/pushengage-react-native": "^1.0.0"` (or any modern pin `>= 0.0.2`) AND
+- `"@pushengage/pushengage-react-native": "^1.1.0"` (or any modern pin `>= 0.0.2`) AND
 - `"react-native": "0.77.x"` or older (any version `< 0.78.0`).
 
 **Categorize:** Likely cause (if iOS build fails with TurboModuleRegistry errors).
@@ -249,6 +249,32 @@ Run order: read all relevant files once, apply each check, group findings by cat
 **References:** KI-RN012.
 
 **Fix:** use `if (result == null)` / `if (!result)` instead of comparing to the empty string.
+
+## RN-AUDIT-19 — `onIAMCustomAction` subscribed without cleanup / outside the root
+
+**Files to check:** all `*.js` / `*.ts` / `*.tsx` containing `onIAMCustomAction`.
+
+**Pattern:** (a) `PushEngage.onIAMCustomAction(...)` inside a `useEffect` that does not return a cleanup calling `.remove()` on the subscription; OR (b) the subscription lives in a screen component that unmounts during the session rather than the root component.
+
+**Categorize:** (a) Cosmetic (duplicate callbacks after fast refresh); (b) Worth fixing (custom buttons on other screens never reach the app once that screen unmounts).
+
+**References:** RN-BP-14.
+
+**Fix:** move it to the root component's startup effect next to `onValueChanged`, return `() => subscription.remove()`. Quote `in-app-messaging.md`.
+
+---
+
+## RN-AUDIT-20 — Internal / removed IAM methods referenced from JS
+
+**Files to check:** all `*.js` / `*.ts` / `*.tsx`.
+
+**Pattern:** `setIAMCustomActionHandlerEnabled(` or `getIAMDatabaseState(` on the `PushEngage` object.
+
+**Categorize:** Likely cause (runtime `TypeError: PushEngage.setIAMCustomActionHandlerEnabled is not a function`).
+
+**References:** RN-BP-15, KI-RN015.
+
+**Fix:** delete the call. Native forwarding is auto-enabled; subscribe to `onIAMCustomAction` directly. `getIAMDatabaseState` never shipped — use SDK logging to inspect synced campaigns (`../pushengage-debug/log-readers.md`).
 
 ---
 

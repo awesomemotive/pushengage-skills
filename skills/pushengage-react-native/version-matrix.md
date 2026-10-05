@@ -4,22 +4,24 @@ Single source of truth for RN-SDK-version-pinned data. Other files in this spoke
 
 ## Current stable version
 
-**npm package (`@pushengage/pushengage-react-native`):** `1.0.1` — pinned via `^1.0.0` in `package.json`. The released source declares `1.0.1` in `package.json` and in both wrapper-version constants (iOS `wrapperVersion`, Android `WRAPPER_VERSION`). (1.0.1 is a maintenance release over 1.0.0: version bumps, example app modernization to RN 0.86, and an internal codegen-compat change to `trackEvent`'s native spec typing — no public JS API changes.)
+**npm package (`@pushengage/pushengage-react-native`):** `1.1.0` — pinned via `^1.1.0` in `package.json`.
+
+> **Release note (2026-10-02):** `1.1.0` adds **In-App Messaging** — `triggerIAMEvent(...)`, the `onIAMCustomAction` event emitter, and the exported `IAMCustomAction` type — and bumps the transitive natives to iOS `PushEngage 1.1.0` / Android `1.0.0`. No JS init change, no manifest/Info.plist/AppDelegate/MainActivity change; the native custom-action forwarder is enabled automatically on module load. **Breaking (iOS):** the native pod now requires iOS 15.0 — moot for RN apps, whose 0.78 baseline is already 15.1. See `in-app-messaging.md`. (History: `1.0.1` was a maintenance release over `1.0.0` — version bumps, example app on RN 0.86, codegen-compat typing for `trackEvent`; no public API change.)
 
 **Native dependencies pulled transitively** (do NOT add these directly in the customer's main app Podfile target or Android dependencies block):
 
 | Layer | Coordinate | Version |
 |---|---|---|
-| iOS pod (transitive via the plugin) | `PushEngage` | `1.0.0` (pinned exactly) |
-| Android library (transitive via the plugin) | `com.github.awesomemotive:pushengage-android-sdk` | `0.1.0` |
+| iOS pod (transitive via the plugin) | `PushEngage` | `1.1.0` (pinned exactly) |
+| Android library (transitive via the plugin) | `com.github.awesomemotive:pushengage-android-sdk` | `1.0.0` |
 
-> NOTE: the iOS native pin is `1.0.0`, NOT `0.1.0` — the "iOS SDK 0.1.0" wording in the release notes is contradicted by the actual transitive pin, which is build-authoritative (it's what `pod install` resolves). On iOS the plugin's transitive `PushEngage 1.0.0` is the app-side pod; extension targets (NSE/NCE) link the separate extension-safe `PushEngageExtension 1.0.0` pod (see `install.md` / `nse-setup.md`).
+> NOTE: on iOS the plugin's transitive `PushEngage 1.1.0` is the app-side pod; extension targets (NSE/NCE) link the separate extension-safe `PushEngageExtension 1.1.0` pod (see `install.md` / `nse-setup.md`). The transitive pin is build-authoritative — it's what `pod install` resolves.
 
 ## React Native compatibility split
 
 | RN version | SDK version to use |
 |---|---|
-| `>= 0.78` | `^1.0.0` (latest). Uses Turbo Modules / New Architecture. |
+| `>= 0.78` | `^1.1.0` (latest). Uses Turbo Modules / New Architecture. |
 | `< 0.78` | **No supported SDK build — upgrade RN to 0.78+ (required).** Every published release from `0.0.2` onward declares a `react-native >= 0.78.0` peer-dependency floor (npm registry). The only exception, `0.0.1` (2025-02, peer dep `react-native: *`), predates the modern API surface and is unsupported. (KI-RN009 / RN-AUDIT-14.) |
 
 The skill should not attempt a downgrade workaround for RN < 0.78 — the only pre-floor npm version (`0.0.1`) lacks the modern API and is unsupported. The only supported path is to upgrade RN to 0.78+.
@@ -34,7 +36,7 @@ All members are properties on the default-exported `PushEngage` object. Async me
 |---|---|---|
 | `setAppId` | `(appId: string) => void` | Call from `index.js` BEFORE `AppRegistry.registerComponent` (RN-BP-01). |
 | `setEnvironment` | `(environment: 'STAGING' \| 'PRODUCTION') => void` | Switches between staging and production backends. **Call BEFORE `setAppId`** — both platforms cache base URLs on builder init. Case insensitive natively; unknown values default to production. |
-| `getSdkVersion` | `() => string` | Returns the RN plugin version (`1.0.1` in source). **Unlike iOS native (KI-005), this works on RN.** |
+| `getSdkVersion` | `() => string` | Returns the RN plugin version (`1.1.0` in source). **Unlike iOS native (KI-005), this works on RN.** |
 | `setSmallIconResource` | `(resourceName: string) => Promise<void>` | Android-only; on iOS a no-op. Both platforms resolve `null` at runtime (iOS was `""` pre-1.0 — KI-RN012). Treat the result as nullable/falsy — the TS type is `Promise<void>`, so don't inspect it. |
 | `enableLogging` | `(shouldEnable: boolean) => void` | Gate behind `if (__DEV__)` (RN-BP-05). |
 
@@ -98,6 +100,13 @@ All members are properties on the default-exported `PushEngage` object. Async me
 | `trackEvent` | `(event: TrackEventPayload) => Promise<void>` | Custom analytics. `eventName` required; `provider` defaults `"PushEngage"`, `eventType` defaults `"PushEngage.CustomEvent"`. |
 | `automatedNotification` | `(status: boolean) => Promise<string \| null>` | **`boolean`, not enum** — unlike Flutter. The exported `TriggerStatusType` enum is unused by this method. |
 
+### In-App Messaging (new in 1.1.0)
+
+| Method | Signature | Notes |
+|---|---|---|
+| `triggerIAMEvent` | `(eventName: string, parameters?: { [k: string]: string \| number \| boolean }) => Promise<string \| null>` | Custom IAM trigger. Resolves with the native message (`"In-app message event triggered successfully"`) — means the event was accepted, NOT that a message was shown. Empty name → rejects with `.code` `"400"`, message `Event name is required`. Omitted `parameters` is coerced to `null` at the codegen boundary for you. Values are stringified natively before matching; Android drops `null` values. Works without a push subscription. See `in-app-messaging.md`. |
+| `onIAMCustomAction` | `EventEmitter<IAMCustomAction>` — subscribe via `PushEngage.onIAMCustomAction(cb)`, returns `EventSubscription` | Fires for `custom` IAM button taps only. Native forwarding is auto-enabled on module load — no activation call. `subscription.remove()` in the `useEffect` cleanup (RN-BP-14). Not buffered for cold boot — by design. |
+
 ### Cold-boot / launch
 
 | Method | Signature | Notes |
@@ -138,10 +147,13 @@ New in 1.0.0. Importable from `@pushengage/pushengage-react-native`.
 | `FcmConfigError` | `interface { code: number; message: string }` |
 | `IdentifyFields` | `interface` with 12 optional keys `first_name, last_name, email, phone, gender, dob, language, profile_id, country, city, state, zip`, each `string \| number \| boolean` |
 | `TrackEventPayload` | `interface { eventName: string; data?: {...}; profileId?: string; provider?: string; eventType?: string }` |
+| `IAMCustomAction` | **NEW (1.1.0).** `interface { actionId: string; parameters: { [k: string]: string } }` — the `onIAMCustomAction` payload. **Route on `parameters.action`** (the dashboard Action name); `actionId` is a dashboard-generated internal key (e.g. `t04B05`). `parameters` values are always strings (stringified natively). |
 
 ## Removed from the public API
 
 `setFcmConfigErrorListenerEnabled` was removed from the public `PushEngage` object in 1.0.0. Forwarding is auto-enabled on module load; the native/codegen method remains internal-only. Don't reference it in customer code — `PushEngage.setFcmConfigErrorListenerEnabled(...)` now throws `undefined is not a function`.
+
+The same pattern applies to `setIAMCustomActionHandlerEnabled` (1.1.0): it exists on the native codegen spec, is called once by the module on load, and is **not** on the public `PushEngage` object — `PushEngage.setIAMCustomActionHandlerEnabled(...)` throws `undefined is not a function` (KI-RN015 / RN-AUDIT-20). Subscribe to `onIAMCustomAction` directly.
 
 ## Turbo Module name
 
@@ -175,8 +187,8 @@ Some earlier setup guides show these older values. Use this matrix as the source
 | Public doc value | Actual current value | Audit ref |
 |---|---|---|
 | `import PushEngage from 'pushengage-react-native'` | `from '@pushengage/pushengage-react-native'` | RN-AUDIT-01 / KI-RN001 |
-| `pod 'PushEngage', '~>0.0.5'` in NSE Podfile snippet | `pod 'PushEngageExtension', '1.0.0'` | RN-AUDIT-03 / KI-RN011 |
-| `pod 'PushEngage', '0.0.5'` in NCE Podfile snippet | `pod 'PushEngageExtension', '1.0.0'` | RN-AUDIT-03 |
+| `pod 'PushEngage', '~>0.0.5'` in NSE Podfile snippet | `pod 'PushEngageExtension', '1.1.0'` | RN-AUDIT-03 / KI-RN011 |
+| `pod 'PushEngage', '0.0.5'` in NCE Podfile snippet | `pod 'PushEngageExtension', '1.1.0'` | RN-AUDIT-03 |
 | NSE deployment target "iOS 10+" | iOS 15.1+ (the RN 0.78 baseline) | — |
 
 ## SDK example app gaps (do NOT copy verbatim)
@@ -193,11 +205,11 @@ The SDK's own example app at `https://github.com/awesomemotive/pushengage-react-
 - **npm:** `https://www.npmjs.com/package/@pushengage/pushengage-react-native`. Source of truth for published version.
 - **Source code:** `https://github.com/awesomemotive/pushengage-react-native`. The repo's published TypeScript source is the canonical API reference.
 - **iOS pod:** transitively via the plugin (`s.dependency 'PushEngage', '1.0.0'`). NSE/NCE targets additionally link the extension-safe `PushEngageExtension` pod at the same version.
-- **Android library:** transitively via the plugin (`pushengage-android-sdk:0.1.0`). JitPack-hosted.
+- **Android library:** transitively via the plugin (`pushengage-android-sdk:1.0.0`). JitPack-hosted.
 
 ## Known-issue version bounds
 
-Maintained in `pushengage-debug/known-issues.md`. RN entries use IDs `KI-RN001..KI-RN014`. Each row references this matrix's `1.0.1` baseline (with underlying native pins iOS `1.0.0` / Android `0.1.0` — unchanged since 1.0.0). New in this release: `KI-RN012` (the `setSmallIconResource` iOS resolution change `""`→`null`), `KI-RN013` (the `logout` `TypeError` JS-boundary guard), and `KI-RN014` (the `onFcmConfigError` / `runConfigValidation` iOS-asymmetry — both are Android-only no-ops on iOS).
+Maintained in `pushengage-debug/known-issues.md`. RN entries use IDs `KI-RN001..KI-RN015`. Each row references this matrix's `1.1.0` baseline (with underlying native pins iOS `1.1.0` / Android `1.0.0`). Added at `1.0.1`: `KI-RN012` (the `setSmallIconResource` iOS resolution change `""`→`null`), `KI-RN013` (the `logout` `TypeError` JS-boundary guard), and `KI-RN014` (the `onFcmConfigError` / `runConfigValidation` iOS-asymmetry — both are Android-only no-ops on iOS).
 
 ---
 
@@ -210,3 +222,4 @@ Maintained in `pushengage-debug/known-issues.md`. RN entries use IDs `KI-RN001..
 5. Add or close known-issue rows in `pushengage-debug/known-issues.md` (KI-RN0NN entries).
 6. Update `references.md` if the GitHub release tag URL changes.
 7. Re-verify the RN version compatibility split — if the plugin drops support for RN < 0.78 entirely, update the compatibility table.
+8. Re-verify the IAM surface (`triggerIAMEvent`, `onIAMCustomAction`, `IAMCustomAction`) against `in-app-messaging.md` and audit checks RN-AUDIT-19/20.

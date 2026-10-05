@@ -69,6 +69,26 @@ The numeric badge on the app icon. `setBadgeCount(n)` sets it; `setBadgeCount(0)
 
 A subscription-style alert tied to a specific product. The app calls `addAlert(...)` with a product reference, price, availability, etc. When dashboard-side conditions match (price drops, item restocked), PushEngage notifies the subscriber.
 
+## In-App Message (IAM)
+
+A dashboard-designed HTML message (banner at `top` / `bottom`, `center` modal, or `full` screen) that the SDK displays **inside the running app**. A separate channel from push: needs only the App ID, works without a push subscription or notification permission. Available from iOS `1.1.0`, Android `1.0.0`, Flutter `1.1.0`, React Native `1.1.0`. Full semantics in `in-app-messaging.md`.
+
+## IAM Trigger (app open vs custom event)
+
+What makes an in-app campaign appear. **App open** fires once per process lifetime (not on every foreground). **Custom** fires when the app reports a matching event via `triggerIAMEvent(...)`; the event name must match the dashboard exactly, case included. Not to be confused with a push **Trigger Campaign** (`sendTriggerEvent`) or a **Custom Event** (`trackEvent`) — those are server-side automation inputs, `triggerIAMEvent` is evaluated on the device.
+
+## IAM Action / Custom Action
+
+A button inside an in-app message. Four types: `open_url` (external browser, http/https only), `request_notification_permission` (SDK shows the system prompt and subscribes on grant), `dismiss`, and `custom`. Only `custom` reaches the app — via `setIAMCustomActionHandler` (iOS/Android), `onIAMCustomAction` stream (Flutter), or `onIAMCustomAction` emitter (React Native) — carrying string-valued `parameters` whose `action` entry is the button's **Action name** from the dashboard (route on that), plus an `actionId` that is a dashboard-generated internal key (e.g. `t04B05` — don't route on it). Every recognised button also dismisses the message.
+
+## IAM Audience
+
+Who is eligible for an in-app campaign: OR'd groups of AND'd conditions over **device data** (`platform`, `os_version`, `app_version`, `language`, `device_region`, `timezone`, `notification_enabled`) and **subscriber data** (`segments`, `city`, `state`, `geo_country`, `has_unsubscribed`, `attr.<key>`). Subscriber-data rules are skipped until the device has a push subscription and the subscriber record has been fetched once.
+
+## IAM Frequency Cap
+
+How often an in-app campaign may reappear on one device: no cap, **one time**, **capped** (N total and at most once per interval), or **recurring** (unlimited, spaced by an interval). Counts live on the device; reinstalling resets them.
+
 ## Notification Service Extension (NSE) — iOS only
 
 An iOS app extension target that runs before a notification is displayed. PushEngage uses it to attach rich media (images), handle mutable content, and ensure tracking fires. Required for rich notifications. See the iOS spoke for setup.

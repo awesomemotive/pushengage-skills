@@ -15,7 +15,7 @@ Ask first: "Do you need a custom expanded notification UI (your own SwiftUI / UI
 1. Xcode → **File → New → Target → Notification Content Extension**.
 2. Click **Next**, name it (e.g. `PushEngageNotificationContentExtension`).
 3. When Xcode asks **Activate scheme?** → **Cancel**.
-4. Select the top-level project → select the NCE target → set **Deployment Target ≥ iOS 12** (the SDK's minimum). Set it to **≥ iOS 13** if your custom view hosts SwiftUI via `UIHostingController`.
+4. Select the top-level project → select the NCE target → set **Deployment Target ≥ iOS 15** (the SDK's minimum from `1.1.0`).
 
 ## Step 2 — Set `UNNotificationExtensionCategory` (IOS-BP-09)
 
@@ -50,7 +50,7 @@ Or, for multiple categories:
 
 ## Step 3 — Add SDK dependency to NCE target
 
-Same pattern as NSE (Step 2 of `nse-setup.md`) — either SPM (add the **`PushEngageExtension`** product via Xcode UI, NOT `PushEngage`) or CocoaPods (add a nested `target '<NCE target>' do pod 'PushEngageExtension', '1.0.0' end` to the Podfile, then `pod install`).
+Same pattern as NSE (Step 2 of `nse-setup.md`) — either SPM (add the **`PushEngageExtension`** product via Xcode UI, NOT `PushEngage`) or CocoaPods (add a nested `target '<NCE target>' do pod 'PushEngageExtension', '1.1.0' end` to the Podfile, then `pod install`).
 
 ## Step 4 — Replace the generated NotificationViewController.swift
 

@@ -19,14 +19,14 @@ The NSE target must be created through Xcode's UI. **Do not edit `.pbxproj` prog
 4. **Product name:** `NotificationServiceExtension` (or match whatever name you'll use in the Podfile target block below — they MUST match).
 5. **Bundle Identifier:** `<your-main-bundle>.NotificationServiceExtension` (Xcode pre-fills this; usually correct).
 6. **Language:** Swift.
-7. **Deployment target (in the target's settings after creation):** **iOS 12**. Xcode's default is iOS 10 — override it. Matches the rest of the project per `install.md`.
+7. **Deployment target (in the target's settings after creation):** **iOS 15**. Xcode's default is iOS 10 — override it. Matches the rest of the project per `install.md`.
 8. When Xcode prompts to **"Activate scheme"** — click **Cancel**. (Activating switches the run scheme to the NSE, which makes debugging the main app harder.)
 9. Replace the auto-generated `NotificationService.swift` with the PushEngage NSE template (below).
 10. Add the NSE target to `ios/Podfile`:
     ```ruby
     target 'NotificationServiceExtension' do
       use_frameworks!
-      pod 'PushEngageExtension', '1.0.0'
+      pod 'PushEngageExtension', '1.1.0'
     end
     ```
 11. Run `pod install` from `ios/`.
@@ -80,16 +80,16 @@ class NotificationService: UNNotificationServiceExtension {
 
 Same template as the iOS-native spoke's NSE setup. The Flutter project is irrelevant to the NSE's source — it operates entirely in the iOS extension process.
 
-> Under iOS SDK 1.0.0 the extension imports `PushEngageExtension` (NOT `PushEngage`) and calls the helpers with the `PushEngageExtension.` prefix. Method names and signatures are unchanged — only the module/class prefix. The `@available(iOSApplicationExtension 10.0, *)` annotation can stay; it's not load-bearing (the pod's deployment target is 12).
+> Under iOS SDK 1.0.0 the extension imports `PushEngageExtension` (NOT `PushEngage`) and calls the helpers with the `PushEngageExtension.` prefix. Method names and signatures are unchanged — only the module/class prefix. The `@available(iOSApplicationExtension 10.0, *)` annotation can stay; it's not load-bearing (the pod's deployment target is 15 from `1.1.0`).
 
 ## Common failures
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Build error: "Application extensions cannot use PushEngage" | The NSE block still pins `pod 'PushEngage'` (the non-extension-safe app pod) instead of the extension-safe `PushEngageExtension`. Under iOS SDK 1.0.0 the `APPLICATION_EXTENSION_API_ONLY = 'No'` override is gone (obsolete) — this is now purely a wrong-pod problem. | Switch the NSE block to `pod 'PushEngageExtension', '1.0.0'`, then `cd ios && pod install`. FLUTTER-AUDIT-04. |
-| Build error: "Pod 'PushEngageExtension' not found" | Forgot `pod install` after adding the NSE target block, OR the block still references `PushEngage` instead of `PushEngageExtension` | Confirm the block pins `pod 'PushEngageExtension', '1.0.0'`, then `cd ios && pod install`. |
-| Build error: "PushEngageExtension was built for iOS X" or arch mismatch | NSE deployment target mismatched with the main app's | Set NSE deployment target to iOS 12 (matches main app per `install.md`). |
-| Rich-push image doesn't display | NSE not present, OR NSE present but `Podfile` pin is stale `pod 'PushEngage', '0.0.6'`/`~>0.0.4` instead of `pod 'PushEngageExtension', '1.0.0'` (KI-F011), OR App Groups capability not enabled on both targets, OR `PushEngage_App_Group_Key` mismatch | Walk through all four: target exists + builds + App Groups on both + Info.plist key matches. FLUTTER-AUDIT-03, FLUTTER-AUDIT-09. |
+| Build error: "Application extensions cannot use PushEngage" | The NSE block still pins `pod 'PushEngage'` (the non-extension-safe app pod) instead of the extension-safe `PushEngageExtension`. Under iOS SDK 1.0.0 the `APPLICATION_EXTENSION_API_ONLY = 'No'` override is gone (obsolete) — this is now purely a wrong-pod problem. | Switch the NSE block to `pod 'PushEngageExtension', '1.1.0'`, then `cd ios && pod install`. FLUTTER-AUDIT-04. |
+| Build error: "Pod 'PushEngageExtension' not found" | Forgot `pod install` after adding the NSE target block, OR the block still references `PushEngage` instead of `PushEngageExtension` | Confirm the block pins `pod 'PushEngageExtension', '1.1.0'`, then `cd ios && pod install`. |
+| Build error: "PushEngageExtension was built for iOS X" or arch mismatch | NSE deployment target mismatched with the main app's | Set NSE deployment target to iOS 15 (matches main app per `install.md`). |
+| Rich-push image doesn't display | NSE not present, OR NSE present but `Podfile` pin is stale `pod 'PushEngage', '0.0.6'`/`~>0.0.4` instead of `pod 'PushEngageExtension', '1.1.0'` (KI-F011), OR App Groups capability not enabled on both targets, OR `PushEngage_App_Group_Key` mismatch | Walk through all four: target exists + builds + App Groups on both + Info.plist key matches. FLUTTER-AUDIT-03, FLUTTER-AUDIT-09. |
 
 ## Edit posture
 

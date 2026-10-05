@@ -11,6 +11,7 @@ Used in Phase 3 of the debug skill (after audit and known-issues didn't resolve)
 5. **Subscriber count is wrong / device not registered.**
 6. **App crashes / build fails.**
 7. **(Android only) Notifications work for a while, then stop.**
+8. **In-app message never appears / button does nothing / custom action never reaches the app.**
 
 ---
 
@@ -294,6 +295,55 @@ Ask the customer: does the notification arrive immediately if they manually open
 ### 7.4 — Flutter / RN apps: same mitigation, customer-side
 
 Flutter and React Native apps hit the same OEM restriction. Same 7.2 pattern (in-app advice + Settings deep-link). Flutter: use `app_settings` / `permission_handler` package or a custom platform-channel method to launch `Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`. RN: use `Linking.openSettings()` (opens app notification settings; for battery-optimization specifically, use a native module or package like `react-native-battery-optimization-check`). Neither SDK can fix this — it's customer-app-side.
+
+---
+
+## Branch 8 — In-app messaging (all platforms)
+
+IAM is a separate channel from push: it needs only the App ID, so none of Branch 1's subscriber/APNs/FCM checks apply unless the campaign targets *subscriber data*. Read `../pushengage/in-app-messaging.md` for the semantics before branching. Ask the customer to enable SDK logging first — every rejection is logged with the campaign id.
+
+### 8.1 — Does the installed SDK have IAM at all?
+
+- iOS `< 1.1.0`, Android `< 1.0.0`, Flutter `< 1.1.0`, RN `< 1.1.0` → no IAM API. Upgrade per the spoke's `version-matrix.md`. Wrapper apps: check the resolved native versions in `Podfile.lock` / Gradle, not just the plugin pin.
+- Symptom "`triggerIAMEvent` is not a function / no such method / no member" → this is the answer.
+
+### 8.2 — Message never appears
+
+Work down in order:
+
+1. **Synced?** Campaigns sync on init and ~every 6 h. Force-quit and relaunch after creating/editing a campaign. iOS: sync errors are error-level `os_log`, not stdout — capture both (`log-readers.md`).
+2. **IAM enabled for the site, campaign published and active?** A disabled site purges local campaigns. (No MCP tool exposes this today — ask the customer.)
+3. **Trigger:** app-open campaigns fire **once per process** — backgrounding is not a relaunch. Custom campaigns need the exact event string (case-sensitive); a blank name is rejected with `400 Event name is required`. Success from `triggerIAMEvent` only means "accepted".
+4. **Date window** (UTC, inclusive) — expired or not yet started campaigns are skipped.
+5. **Frequency cap** — a One-time campaign that already displayed on this device never shows again; clear app data / reinstall to reset.
+6. **Audience** — device-data rules (`platform` is exactly `iOS`/`Android`, `language` is bare `en`, versions compare component-wise) always evaluate; **subscriber-data rules are skipped until the device is a push subscriber and the record was fetched once** (fresh install: usually the second open). Simulator / no-push-entitlement builds never satisfy them.
+7. **Another message on screen?** One at a time; the next shows after dismissal. iOS queues at most 10.
+8. **Trigger conditions typed wrongly?** A `string`-typed `greater than` never matches; numeric comparisons need a `number` condition. Malformed campaigns fail closed — the log says why.
+9. iOS only: `CoreData model not found in resource bundle` in the log → KI-011 (manual framework integration). `BGTaskSchedulerPermittedIdentifiers` error line → KI-010, harmless.
+
+If the log shows `Eligible message: <id>` (Android) / the iOS equivalent but nothing is visible → the host UI is covering it (Android: a full-screen `Dialog`/overlay added after the SDK's view; iOS: the SDK uses its own window above the app, so this is rare) — escalate with the log.
+
+### 8.3 — Button does nothing
+
+- **Action type spelling** on the dashboard must be exactly `open_url`, `request_notification_permission`, `dismiss`, or `custom` (lowercase). Anything else is inert: no click, message stays. Only that button is affected.
+- **`open_url` with a non-http(s) URL** (custom scheme) is refused; the message still closes (KI-A009). Use a `custom` action.
+- **`custom` with no handler/listener** → click recorded, message closes, app never notified → 8.4.
+- The HTML must call `PEBridge.handleAction('<key>')` with a key that exists in the campaign's actions map; an unknown key leaves the message up.
+
+### 8.4 — Custom action never reaches the app
+
+- iOS: `setIAMCustomActionHandler` registered? Single slot — a later registration (e.g. in a view controller) replaced the AppDelegate one (IOS-AUDIT-17).
+- Android: registered app-wide in `Application.onCreate()`? Per-Activity registration misses other screens (ANDROID-AUDIT-13). Kotlin lambda won't compile (KI-A008).
+- Flutter: `onIAMCustomAction.listen` active in a live widget (FLUTTER-AUDIT-14)? Not cancelled by a popped route? Host `AppDelegate.swift` must NOT call `setIAMCustomActionHandler` (it overwrites the plugin's).
+- RN: `onIAMCustomAction(cb)` subscribed in a mounted component (RN-AUDIT-19)? No `setIAMCustomActionHandlerEnabled` call (KI-RN015)? Host native code must NOT call `setIAMCustomActionHandler`.
+- Handler fires but the `switch` never matches? It is switching on `actionId` (an internal dashboard key like `t04B05`) instead of `parameters["action"]` (the Action name). Log both and compare with the dashboard.
+- Expecting it on the push listener (`setNotificationOpenHandler` / `deepLinkStream` / `onValueChanged`)? IAM never arrives there (XP-BP-09).
+
+### 8.5 — Message can't be closed / shows too often / wrong order
+
+- Unclosable: campaign lacks a Dismiss button and auto-dismiss, tap-outside off → dashboard authoring fix (XP-BP-11). The SDK draws no close button.
+- Shows every launch: no frequency cap or Recurring with a short interval → dashboard fix.
+- Wrong order: equal/unset priorities — give campaigns distinct priorities; lower number first.
 
 ---
 

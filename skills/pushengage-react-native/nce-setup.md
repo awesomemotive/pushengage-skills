@@ -16,7 +16,7 @@ Same pattern as `nse-setup.md`:
 6. Add the NCE target to `ios/Podfile`:
    ```ruby
    target 'NotificationContentExtension' do
-     pod 'PushEngageExtension', '1.0.0'
+     pod 'PushEngageExtension', '1.1.0'
    end
    ```
    **NOT `pod 'PushEngage'`** — as of the 1.0.0 two-pod split, extension targets link the extension-safe `PushEngageExtension` pod. (RN-AUDIT-03.)

@@ -8,11 +8,12 @@ The reason: PushEngage's public surface area is small enough that hallucinating 
 
 | URL | Purpose | Caveats |
 |---|---|---|
-| `https://www.pushengage.com/documentation/setting-up-react-native-app-push-notification-using-pushengage.md` | Setup walkthrough | **Stale on four items:** import name (`'pushengage-react-native'` should be `'@pushengage/pushengage-react-native'`), NSE pod (`~>0.0.5` should be `pod 'PushEngageExtension', '1.0.0'`), NCE pod (`0.0.5` should be `pod 'PushEngageExtension', '1.0.0'`), NSE deployment target ("iOS 10+" should be 15.1+). Defer to this spoke's `version-matrix.md`. |
+| `https://www.pushengage.com/documentation/setting-up-react-native-app-push-notification-using-pushengage.md` | Setup walkthrough | **Stale on four items:** import name (`'pushengage-react-native'` should be `'@pushengage/pushengage-react-native'`), NSE pod (`~>0.0.5` should be `pod 'PushEngageExtension', '1.1.0'`), NCE pod (`0.0.5` should be `pod 'PushEngageExtension', '1.1.0'`), NSE deployment target ("iOS 10+" should be 15.1+). Defer to this spoke's `version-matrix.md`. |
 | `https://www.pushengage.com/api/mobile-sdk/react-native/sdk-reference.md` | API reference (RN-specific) | At capture time, depth varies. Verify against the published TypeScript source in the GitHub repo when in doubt. |
 | `https://www.npmjs.com/package/@pushengage/pushengage-react-native` | Canonical published version + changelog | Source of truth for what version is actually shipped. |
 | `https://github.com/awesomemotive/pushengage-react-native` | Source code + release tags | Source of truth for the TypeScript API surface. |
 | `https://github.com/awesomemotive/pushengage-react-native/issues` | Bug tracker | For escalation when the known-issues table doesn't cover something. |
+| `https://www.pushengage.com/api/mobile-sdk/in-app-messaging.md` | Cross-platform In-App Messaging guide (triggers, audience, actions, frequency caps, troubleshooting) | **Not yet published as of 2026-10-05 (returns 404)** — the page exists only on the api-docs `task/iam-app` branch. Until it is live, treat this spoke's `in-app-messaging.md`, `../pushengage/in-app-messaging.md`, and the released SDK README's In-App Messaging section (GitHub URL above) as the source of truth. Does NOT document the dashboard click-path for creating campaigns. |
 
 ## Not allowed
 

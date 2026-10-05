@@ -190,7 +190,8 @@ Keep the init template above minimal. The following `0.1.0` additions are worth 
   ```
 - **`PushEngage.setBadgeCount(int)`** — available for badge management (`0` cancels all notifications; `>0` sets a number on future SDK notifications). Not part of the init template.
 - **User Identification API (`identify` / `logout` / `trackEvent`)** — post-init / post-subscribe surface. Document these in `best-practices.md` (ANDROID-BP-14) and concepts, NOT in the Application-class init template.
+- **`PushEngage.setIAMCustomActionHandler(object : IAMCustomActionHandler { … })`** (SDK `1.0.0`, In-App Messaging) — the one IAM call that *does* belong in `Application.onCreate()` (before or after `build()`), but only when the customer's campaigns use `custom` buttons (ANDROID-BP-16). Kotlin needs `object :`, not a lambda (ANDROID-BP-18). No other IAM setup exists. See `in-app-messaging.md`.
 
 ---
 
-Next: `permission-flow.md` for the runtime-permission step. If the project uses Jetpack Compose, also read `jetpack-compose.md`.
+Next: `permission-flow.md` for the runtime-permission step. If the project uses Jetpack Compose, also read `jetpack-compose.md`. For in-app messages → `in-app-messaging.md`.

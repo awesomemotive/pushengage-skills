@@ -1,16 +1,16 @@
 ---
 name: pushengage
-description: Use when integrating, debugging, asking about, or auditing PushEngage push notifications in any mobile app (iOS, Android, Flutter, React Native). Detects the customer's platform and hands off to the matching platform spoke.
+description: Use when integrating, debugging, asking about, or auditing PushEngage push notifications or in-app messaging in any mobile app (iOS, Android, Flutter, React Native). Detects the customer's platform and hands off to the matching platform spoke.
 license: MIT
 compatibility: Works with any agent that supports the Agent Skills (SKILL.md) standard, including Claude Code and Cowork. Needs filesystem read access and a shell to detect the project type; some steps fetch allowlisted documentation URLs.
 metadata:
   author: PushEngage
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # PushEngage — Entry Skill
 
-This skill is the entry point for any PushEngage-related task. Its job is small and mechanical:
+This skill is the entry point for any PushEngage-related task — push notifications **and** in-app messaging (IAM). Its job is small and mechanical:
 
 1. Detect which platform the customer's repo is.
 2. Hand off to the matching platform spoke skill.
@@ -77,6 +77,10 @@ These skills cover **SDK integration and debugging in the customer's codebase**.
 - If the MCP tools are not available, do NOT fabricate dashboard state. Tell the customer the steps to do it in the dashboard UI, or point them at the MCP server.
 - First MCP use triggers a browser login to the customer's PushEngage account — that prompt is expected, not an error.
 
+## In-App Messaging
+
+In-app messages (dashboard-designed banners / modals / full-screen takeovers shown inside the app) are a separate channel from push and need only the App ID — no subscription, no notification permission. The platform-independent semantics (triggers, audience, action buttons, frequency caps, troubleshooting checklist) live in `in-app-messaging.md` in this folder; each spoke has its own `in-app-messaging.md` with the platform API and templates. Routing is the same as for push — detect the platform, hand off to the spoke, and the spoke reads its IAM file when the intent is "set up / debug in-app messages". IAM ships from iOS `1.1.0`, Android `1.0.0`, Flutter `1.1.0`, React Native `1.1.0`; older SDKs have no IAM API.
+
 ## Concepts
 
-If you are not sure what a PushEngage term means (site, subscriber, profile ID, segment, App ID vs App Push Id, integration key, hash), read `concepts.md` in this skill folder. Don't guess.
+If you are not sure what a PushEngage term means (site, subscriber, profile ID, segment, App ID vs App Push Id, integration key, hash, in-app message, custom action, frequency cap), read `concepts.md` in this skill folder. Don't guess.

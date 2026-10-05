@@ -1,11 +1,11 @@
 ---
 name: pushengage-ios
-description: Use ONLY when the active repo is a native iOS app (Podfile, Package.swift, or *.xcodeproj present at the project root) AND there is NO `pubspec.yaml` with a `flutter:` SDK block AND NO `package.json` with `react-native` or `expo` dependency. Handles full PushEngage integration end-to-end, plus debugging existing integrations. Do not use for Android, Flutter, or React Native apps even if PushEngage is mentioned.
+description: Use ONLY when the active repo is a native iOS app (Podfile, Package.swift, or *.xcodeproj present at the project root) AND there is NO `pubspec.yaml` with a `flutter:` SDK block AND NO `package.json` with `react-native` or `expo` dependency. Handles full PushEngage integration end-to-end (push notifications and in-app messaging), plus debugging existing integrations. Do not use for Android, Flutter, or React Native apps even if PushEngage is mentioned.
 license: MIT
 compatibility: Works with any agent that supports the Agent Skills (SKILL.md) standard, including Claude Code and Cowork. Needs filesystem read access and a shell to detect the project type; some steps fetch allowlisted documentation URLs.
 metadata:
   author: PushEngage
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # PushEngage — iOS Spoke
@@ -19,6 +19,7 @@ You're working in an iOS app. This skill walks the customer through integrating 
 | "Integrate PushEngage" / "Set up PushEngage" (greenfield or partial) | This file's "Integration flow" section below. |
 | "PushEngage isn't working" / specific symptom | Hand off to `pushengage-debug/SKILL.md` (skill: `pushengage-debug`). |
 | "Audit my PushEngage setup" | Read `audit-checks.md` and run the checks. |
+| "Set up / add in-app messages", "trigger an in-app message", "in-app message never shows", custom action buttons | Read `in-app-messaging.md` (iOS API + setup), then `../pushengage/in-app-messaging.md` for the platform-independent semantics. Requires SDK `1.1.0`. |
 | Concept / terminology question | Read `../pushengage/concepts.md`. |
 | Best practices / rule lookup | Read `best-practices.md` (iOS-specific) or `../pushengage/best-practices.md` (cross-platform). |
 | API surface / "does method X exist" | Read `version-matrix.md` first; if not listed, fetch only URLs from `references.md`. |
@@ -87,6 +88,10 @@ App Groups setup is part of this — both main app and NSE target must share a g
 
 Read `nce-setup.md` only if the customer explicitly asks for custom expanded UI. Default: skip; mention it exists; ask if they want it. From `1.0.0`, the NCE target also uses the **`PushEngageExtension`** pod/product and `import PushEngageExtension`; `getCustomUIPayLoad(for:)` is called on the `PushEngageExtension` class.
 
+#### 3e — In-App Messaging — OPTIONAL
+
+Read `in-app-messaging.md` only if the customer asks for in-app messages (or already has IAM campaigns on the dashboard). Default: skip; mention it exists in one line ("the same SDK also shows dashboard-designed in-app messages with no extra setup — say so if you want them"). IAM needs nothing beyond Part 3b: no pod, no capability, no permission. Optional pieces are the app-wide `setIAMCustomActionHandler` registration in the AppDelegate (diff + confirm) and the background-refresh Info.plist key + Background fetch mode (both or neither). IAM verification is separate from Part 4 and does **not** need a real device.
+
 ### Part 4 — Verification
 
 The success criterion is **a real test notification reaches the customer's device**.
@@ -119,7 +124,8 @@ If the customer says any of the following — or if Part 4 verification fails �
 - "Deep link is broken"
 - "Subscriber count looks wrong" / "I'm not registering as a subscriber"
 - "App crashes on launch after install"
-- "Build fails"
+- "Build fails" (from `1.1.0`: also "pod install says PushEngage (1.1.0) does not support iOS 12/13/14" → KI-009 / IOS-AUDIT-18)
+- "In-app message never appears" / "in-app button does nothing" / "custom action never reaches my code" → diagnostic tree Branch 8 + `in-app-messaging.md`
 
 The debug skill handles audit + known-issues + symptom tree.
 
@@ -130,3 +136,5 @@ The debug skill handles audit + known-issues + symptom tree.
 - Don't touch files outside the integration scope. No refactoring, no Swift-version migrations, no formatting passes.
 - Don't fetch URLs not in `references.md`.
 - Don't ask the customer for the `.p12` private key password in chat — they enter it directly on the dashboard.
+- Don't reference internal IAM types (`IAMController`, `IAMPosition`, …) or invent IAM methods (`enableInAppMessaging`, `pauseInAppMessages`, `dismissCurrentMessage`) — the public IAM surface is exactly `triggerIAMEvent`, `setIAMCustomActionHandler`, `PEIAMCustomActionHandler`.
+- Don't invent the dashboard click-path for creating IAM campaigns; the docs don't specify it.

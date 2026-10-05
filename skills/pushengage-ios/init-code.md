@@ -214,9 +214,24 @@ PushEngage.requestNotificationPermission { granted, error in
 |---|---|---|
 | `PushEngageInAppEnabled` | `YES` / `NO` | YES = open http URLs in in-app WKWebView; NO = open in Safari. |
 | `PushEngageAutoHandleDeeplinkURL` | `YES` / `NO` | YES = SDK opens deeplinks itself; NO = hand to your `setNotificationOpenHandler`. Default behavior is NO (IOS-BP-11). |
+| `BGTaskSchedulerPermittedIdentifiers` | array containing `com.pushengage.iam.refresh` | **Optional, IAM only (SDK ≥ 1.1.0).** Enables background refresh of in-app campaigns; must be paired with Background Modes → Background fetch (IOS-BP-15). Skip unless the customer wants it — see `in-app-messaging.md`. |
 
 Auto-edit posture: announce + edit (these are inert Info.plist additions, low risk).
 
 ---
 
-Next: if rich notifications (images, action buttons) are wanted → `nse-setup.md`. If custom expanded UI → `nce-setup.md`.
+## In-App Messaging hook (optional, SDK ≥ 1.1.0)
+
+If the customer's campaigns use `custom` buttons, register the single app-wide handler right after `setInitialInfo` (IOS-BP-16):
+
+```swift
+PushEngage.setIAMCustomActionHandler { actionId, parameters in
+    // parameters is [String: String]; route on parameters["action"] (the dashboard Action name), not actionId
+}
+```
+
+Nothing else in this file changes for IAM. Details, `triggerIAMEvent`, and verification: `in-app-messaging.md`.
+
+---
+
+Next: if rich notifications (images, action buttons) are wanted → `nse-setup.md`. If custom expanded UI → `nce-setup.md`. For in-app messages → `in-app-messaging.md`.

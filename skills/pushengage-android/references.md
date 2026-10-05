@@ -10,7 +10,8 @@ The reason: PushEngage's public surface area is small enough that hallucinating 
 |---|---|---|
 | `https://www.pushengage.com/documentation/android-push-notification-sdk-setup.md` | Full Android setup walkthrough | For current Firebase pins and the `POST_NOTIFICATIONS` manifest entry, defer to this spoke's `version-matrix.md` + `install.md`. |
 | `https://www.pushengage.com/api/mobile-sdk/android/sdk-reference.md` | Detailed Android API reference | URL as documented in the SDK repo's own README ("Full API reference"). If the page 404s, fall back to `version-matrix.md`. |
-| `https://github.com/awesomemotive/pushengage-android-sdk` | Source of truth for the JitPack tag + public Kotlin/Java API | Pinned tag is the version in `version-matrix.md` (currently `0.1.0`). SPM-equivalent role for Android (the JitPack coordinate resolves through this repo). |
+| `https://www.pushengage.com/api/mobile-sdk/in-app-messaging.md` | Cross-platform In-App Messaging guide (triggers, audience, actions, frequency caps, troubleshooting) | **Not yet published as of 2026-10-05 (returns 404)** — the page exists only on the api-docs `task/iam-app` branch. Until it is live, treat this spoke's `in-app-messaging.md`, `../pushengage/in-app-messaging.md`, and the released SDK README's In-App Messaging section (GitHub URL above) as the source of truth. Does NOT document the dashboard click-path for creating campaigns. |
+| `https://github.com/awesomemotive/pushengage-android-sdk` | Source of truth for the JitPack tag + public Kotlin/Java API | Pinned tag is the version in `version-matrix.md` (currently `1.0.0`). SPM-equivalent role for Android (the JitPack coordinate resolves through this repo). |
 
 ## Not allowed
 
