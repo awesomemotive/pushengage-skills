@@ -16,10 +16,10 @@ yarn add @pushengage/pushengage-react-native
 
 | RN version | What to install |
 |---|---|
-| `>= 0.78` | Latest: `npm install @pushengage/pushengage-react-native` (resolves to `^1.0.0`). |
+| `>= 0.78` | Latest: `npm install @pushengage/pushengage-react-native` (resolves to `^1.1.0`). |
 | `< 0.78` | **Upgrade RN to 0.78+ first (required).** Every published release from `0.0.2` onward declares a `react-native >= 0.78.0` peer-dependency floor (npm registry). The only exception, `0.0.1` (2025-02, peer dep `react-native: *`), predates the modern API surface and is not a supported path. |
 
-If `package.json` has `@pushengage/pushengage-react-native: ^1.0.0` AND `react-native: <0.78.0`, the iOS build will fail with TurboModuleRegistry errors. (RN-AUDIT-14 / KI-RN009.)
+If `package.json` has `@pushengage/pushengage-react-native: ^1.1.0` AND `react-native: <0.78.0`, the iOS build will fail with TurboModuleRegistry errors. (RN-AUDIT-14 / KI-RN009.)
 
 **For old projects:** the only supported path is to upgrade RN to 0.78+. Do not pin `0.0.1` to dodge the peer-dep floor — it predates the modern API (no `identify`/`logout`/`trackEvent`, old `setSmallIconResource` semantics) and is unsupported. (KI-RN009.)
 
@@ -58,7 +58,7 @@ allprojects {
 }
 ```
 
-(The example app also uses `4.4.2` as of SDK 1.0.1.)
+(The example app also uses `4.4.2` since SDK 1.0.1.)
 
 ### Step 2c — `android/app/build.gradle` (app-level)
 
@@ -165,11 +165,11 @@ end
 # Per the 1.0.0 migration, extension targets link only the extension-safe
 # 'PushEngageExtension' pod (NOT the full app-side 'PushEngage' pod).
 target 'NotificationServiceExtension' do
-  pod 'PushEngageExtension', '1.0.0'
+  pod 'PushEngageExtension', '1.1.0'
 end
 
 target 'NotificationContentExtension' do
-  pod 'PushEngageExtension', '1.0.0'
+  pod 'PushEngageExtension', '1.1.0'
 end
 ```
 
@@ -177,9 +177,9 @@ end
 
 ### Step 3c — Do NOT add `pod 'PushEngage'` to the main app target
 
-The RN plugin pins `pod 'PushEngage', '1.0.0'` as a transitive dependency. Redeclaring it in the main `target '<YourAppName>' do` block risks pulling a different version and breaks symbol resolution. (RN-BP-06 / RN-AUDIT-10.)
+The RN plugin pins `pod 'PushEngage', '1.1.0'` as a transitive dependency. Redeclaring it in the main `target '<YourAppName>' do` block risks pulling a different version and breaks symbol resolution. (RN-BP-06 / RN-AUDIT-10.)
 
-NSE and NCE target blocks DO need an explicit `pod 'PushEngageExtension', '1.0.0'` line — those targets don't go through RN's plugin resolution, and they link the extension-safe pod, not the app-side `PushEngage` pod.
+NSE and NCE target blocks DO need an explicit `pod 'PushEngageExtension', '1.1.0'` line — those targets don't go through RN's plugin resolution, and they link the extension-safe pod, not the app-side `PushEngage` pod.
 
 ### Step 3d — `ios/<YourAppName>/Info.plist`
 
@@ -211,10 +211,10 @@ Required keys (most are added automatically by Xcode when enabling capabilities)
 
 Authoritative pins (cross-check with `version-matrix.md`):
 
-- **npm package:** `@pushengage/pushengage-react-native: ^1.0.0` (requires RN 0.78+; no supported build for older RN).
-- **iOS pod (transitive, do not redeclare in main target):** `PushEngage 1.0.0`.
-- **iOS pod (in NSE / NCE targets):** `pod 'PushEngageExtension', '1.0.0'` (the extension-safe pod, NOT `PushEngage`).
-- **Android library (transitive):** `com.github.awesomemotive:pushengage-android-sdk:0.1.0`.
+- **npm package:** `@pushengage/pushengage-react-native: ^1.1.0` (requires RN 0.78+; no supported build for older RN).
+- **iOS pod (transitive, do not redeclare in main target):** `PushEngage 1.1.0`.
+- **iOS pod (in NSE / NCE targets):** `pod 'PushEngageExtension', '1.1.0'` (the extension-safe pod, NOT `PushEngage`).
+- **Android library (transitive):** `com.github.awesomemotive:pushengage-android-sdk:1.0.0`.
 - **`google-services` plugin:** `4.4.2`.
 - **Firebase BOM:** `33.5.1`.
 

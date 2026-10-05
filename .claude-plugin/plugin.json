@@ -1,8 +1,8 @@
 {
   "name": "pushengage",
   "displayName": "PushEngage",
-  "description": "Integrate and debug the PushEngage push-notification SDK across iOS, Android, Flutter, and React Native.",
-  "version": "1.0.0",
+  "description": "Integrate and debug the PushEngage mobile SDK (push notifications and in-app messaging) across iOS, Android, Flutter, and React Native.",
+  "version": "1.1.0",
   "license": "MIT",
-  "keywords": ["pushengage", "push-notifications", "apns", "fcm", "ios", "android", "flutter", "react-native"]
+  "keywords": ["pushengage", "push-notifications", "in-app-messaging", "apns", "fcm", "ios", "android", "flutter", "react-native"]
 }

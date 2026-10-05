@@ -1,11 +1,11 @@
 ---
 name: pushengage-flutter
-description: Use ONLY when the active repo is a Flutter app (`pubspec.yaml` with a `flutter:` SDK block). Handles full PushEngage integration end-to-end (Dart init + Android native config + iOS native config + NSE) plus debugging existing integrations. Do not use for native iOS, native Android, or React Native apps even if PushEngage is mentioned.
+description: Use ONLY when the active repo is a Flutter app (`pubspec.yaml` with a `flutter:` SDK block). Handles full PushEngage integration end-to-end (Dart init + Android native config + iOS native config + NSE, plus in-app messaging) and debugging existing integrations. Do not use for native iOS, native Android, or React Native apps even if PushEngage is mentioned.
 license: MIT
 compatibility: Works with any agent that supports the Agent Skills (SKILL.md) standard, including Claude Code and Cowork. Needs filesystem read access and a shell to detect the project type; some steps fetch allowlisted documentation URLs.
 metadata:
   author: PushEngage
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # PushEngage — Flutter Spoke
@@ -21,6 +21,7 @@ You're working in a Flutter app. This skill walks the customer through integrati
 | "Integrate PushEngage" / "Set up PushEngage" (greenfield or partial) | This file's "Integration flow" section below. |
 | "PushEngage isn't working" / specific symptom | Run static audit (`audit-checks.md`) first, then escalate to `../pushengage-debug/SKILL.md` for Phase 2/3 (skill: `pushengage-debug`). |
 | "Audit my PushEngage setup" | Read `audit-checks.md` and run the checks. |
+| "Set up / add in-app messages", "trigger an in-app message", "in-app message never shows", custom action buttons | Read `in-app-messaging.md` (Dart API), then `../pushengage/in-app-messaging.md` for the platform-independent semantics. Requires plugin `^1.1.0` and `platform :ios, '15.0'`. |
 | Concept / terminology question | Read `../pushengage/concepts.md`. |
 | Best practices / rule lookup | Read `best-practices.md` (Flutter-specific) or `../pushengage/best-practices.md` (cross-platform). |
 | API surface / "does method X exist" | Read `version-matrix.md` first; if not listed, fetch only URLs from `references.md`. |
@@ -69,7 +70,7 @@ Single-platform: just one site, one UUID.
 
 Read `install.md`. Apply:
 
-- `pubspec.yaml` — bump or add `pushengage_flutter_sdk: ^1.0.0`. Run `flutter pub get`.
+- `pubspec.yaml` — bump or add `pushengage_flutter_sdk: ^1.1.0`. Run `flutter pub get`.
 - Android: `android/settings.gradle`, `android/build.gradle`, `android/app/build.gradle`, `AndroidManifest.xml`, `google-services.json`.
 - iOS: `ios/Podfile` (platform + post_install + NSE/NCE targets when applicable), `Info.plist`, `cd ios && pod install`.
 
@@ -99,8 +100,8 @@ For Android: confirm `POST_NOTIFICATIONS` is declared in the Manifest (Step 4a c
 If the customer is shipping to iOS, read `nse-setup.md`. Walk them through:
 
 - Adding the NSE target via Xcode UI.
-- Setting deployment target to iOS 12.
-- Adding `pod 'PushEngageExtension', '1.0.0'` to the Podfile NSE target block (NOT to the `Runner` target).
+- Setting deployment target to iOS 15.
+- Adding `pod 'PushEngageExtension', '1.1.0'` to the Podfile NSE target block (NOT to the `Runner` target).
 - App Groups capability on BOTH targets + matching `PushEngage_App_Group_Key` in both Info.plists.
 
 **Skip this step entirely if the customer is Android-only.**
@@ -108,6 +109,10 @@ If the customer is shipping to iOS, read `nse-setup.md`. Walk them through:
 #### 4e — NCE setup (optional)
 
 Default: SKIP. Only run if the customer explicitly asks for custom in-notification UI. Read `nce-setup.md` if they do.
+
+#### 4f — In-App Messaging — OPTIONAL
+
+Read `in-app-messaging.md` only if the customer asks for in-app messages (or already has IAM campaigns on the dashboard). Default: skip; mention it exists in one line. IAM needs nothing beyond `setAppId` in Part 4b — no native edits. Optional code: an `onIAMCustomAction` subscription next to the `deepLinkStream` listener in the root widget (diff + confirm) and `triggerIAMEvent` calls at the product moments the campaigns key off. Verification does **not** need a real device.
 
 ### Part 5 — Verification
 
@@ -149,6 +154,8 @@ If the customer says any of the following — or if Part 5 verification fails �
 - "Works on Android but not iOS" (or vice versa) → FLUTTER-AUDIT-07 / KI-F006 (hardcoded App ID).
 - "`flutter pub get` succeeded but `PushEngage.X()` says no such method" → FLUTTER-AUDIT-01 / KI-F001 (stale `^0.0.1`).
 - "Gradle build fails: `google-services.json` missing" → FLUTTER-AUDIT-06.
+- "`pod install` fails: pushengage_flutter_sdk (1.1.0) / PushEngage (1.1.0) does not support iOS 12.0–14.x" → FLUTTER-AUDIT-15 / KI-F013 (Podfile `platform :ios, '15.0'`).
+- "In-app message never appears" / "in-app button does nothing" / "`onIAMCustomAction` never fires" → diagnostic tree Branch 8 + `in-app-messaging.md`.
 
 The debug skill handles audit + known-issues + symptom tree.
 
@@ -175,11 +182,12 @@ The Flutter spoke deliberately references content files from the iOS and Android
 ## What you must not do
 
 - **Don't invent PushEngage method names.** If unsure a Dart method exists, check `version-matrix.md`. If still unsure, fetch an allowlisted URL from `references.md`. If still unsure, say so — don't guess.
-- **Use `version-matrix.md` as the source of truth for version pins** (`^1.0.0` Flutter, `1.0.0` iOS pods). Older guides may show earlier pins like `^0.0.1`.
+- **Use `version-matrix.md` as the source of truth for version pins** (`^1.1.0` Flutter, `1.1.0` iOS pods, `platform :ios, '15.0'`). Older guides may show earlier pins like `^0.0.1`.
 - **Don't auto-edit `lib/main.dart` or `AppDelegate.swift` without showing the diff and getting confirmation.** Entry-point code is diff + confirm.
 - **Don't touch files outside the integration scope.** No refactoring, no Dart version bumps, no Flutter SDK upgrades, no Gradle version bumps that weren't strictly required.
 - **Don't fetch URLs not in `references.md`.** The allowlist exists so the customer can trust where you got information.
 - **Don't ask the customer to paste Service Account JSON or `.p12` contents in chat.** Both are secrets. They upload directly to the PushEngage dashboard; you only need to know the local path and confirm the upload succeeded.
 - **Don't add `pod 'PushEngage'` to the main `Runner` target in Podfile** — it's pulled transitively. Only add it to NSE / NCE target blocks. (FLUTTER-BP-06.)
 - **Don't create an Android `Application` subclass for PushEngage init** — the Flutter plugin handles it. If one already exists for other reasons, leave it alone.
+- **Don't call `setIAMCustomActionHandler` from `AppDelegate.swift`** — the plugin registers it; a host call overwrites it and the Dart `onIAMCustomAction` stream goes silent. Don't forward `onRequestPermissionsResult` in `MainActivity.kt` for IAM. Don't invent the dashboard click-path for creating IAM campaigns.
 - **Prefer `setAppId` in `main()` before `runApp`** over the SDK example's `initState` placement. The example sets it from `initState` because it enters the App ID at runtime — a valid pattern, not a bug — but for a known App ID, `main()` is cleaner. (FLUTTER-BP-01.)

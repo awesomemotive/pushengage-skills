@@ -11,7 +11,8 @@ The reason: PushEngage's public surface area is small enough that hallucinating 
 | `https://www.pushengage.com/documentation/how-to-set-up-ios-app-push-notifications-with-pushengage.md` | Full iOS integration walkthrough | For the current API spellings (e.g. `enableLogging`) and the `.p12` dashboard flow, defer to this spoke's content. |
 | `https://www.pushengage.com/documentation/guide-to-creating-ios-apns-certificate.md` | APNs cert generation in Apple Developer portal + Keychain export to `.p12` | Authoritative for cert generation steps; thin on troubleshooting. |
 | `https://www.pushengage.com/api/mobile-sdk/ios/sdk-reference.md` | API reference (iOS-specific) | At capture time, depth varies. Verify against the Swift source in the GitHub repo when in doubt. |
-| `https://github.com/awesomemotive/pushengage-ios-sdk` | SPM package URL + source of truth for the public Swift API | Pinned tag is the version in `version-matrix.md` (currently `1.0.0`). Two products live at this tag: `PushEngage` (app target) and `PushEngageExtension` (NSE/NCE targets). |
+| `https://github.com/awesomemotive/pushengage-ios-sdk` | SPM package URL + source of truth for the public Swift API | Pinned tag is the version in `version-matrix.md` (currently `1.1.0`). Two products live at this tag: `PushEngage` (app target) and `PushEngageExtension` (NSE/NCE targets). |
+| `https://www.pushengage.com/api/mobile-sdk/in-app-messaging.md` | Cross-platform In-App Messaging guide (triggers, audience, actions, frequency caps, troubleshooting) | **Not yet published as of 2026-10-05 (returns 404)** — the page exists only on the api-docs `task/iam-app` branch. Until it is live, treat this spoke's `in-app-messaging.md`, `../pushengage/in-app-messaging.md`, and the released SDK README's In-App Messaging section (GitHub URL above) as the source of truth. Does NOT document the dashboard click-path for creating campaigns. |
 
 ## Not allowed
 

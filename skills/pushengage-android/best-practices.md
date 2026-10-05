@@ -133,6 +133,30 @@ No automatic audit; surface as a "worth fixing" nudge during integration review.
 
 **How to apply:** Recommend during `init-code.md` / debugging "no notifications at all" symptoms. Pass `null` to clear the listener. No automatic audit; surface as a "worth doing" nudge in debug integrations.
 
+## ANDROID-BP-16 — Register the IAM custom-action handler app-wide in `Application.onCreate()`
+
+**Rule:** Call `PushEngage.setIAMCustomActionHandler(...)` once from the `Application` subclass (before or after `Builder.build()` — both work; the SDK stashes an early registration), not from an individual Activity.
+
+**Why:** In-app campaigns with `custom` buttons can display on any screen. A handler registered only inside one Activity leaves taps on every other screen unhandled — the SDK logs `No custom action handler set`, still counts the click, still dismisses the message, and the app never hears about it. Registering in `Application.onCreate()` covers every screen for the process lifetime. Inside the handler, route on `parameters["action"]` (the dashboard Action name); `actionId` is a dashboard-generated internal key like `"t04B05"`.
+
+**How to apply:** Audit check ANDROID-AUDIT-13 — `setIAMCustomActionHandler` appearing only in Activity classes (none in the `Application` subclass) is Worth fixing.
+
+## ANDROID-BP-17 — Use only the public IAM surface; no lifecycle or permission forwarding
+
+**Rule:** The public IAM API is exactly `triggerIAMEvent` (3 overloads), `setIAMCustomActionHandler`, and the `com.pushengage.pushengage.iam.action.IAMCustomActionHandler` interface. Don't reference `IAMConfigurationManager`, `IAMController`, `IAMControllerFactory`, or anything else under `com.pushengage.pushengage.iam.*`; don't forward `onRequestPermissionsResult`, `onActivityResumed`, or configuration changes to the SDK for IAM.
+
+**Why:** Everything else in the `iam` package is `internal` or `@RestrictTo(LIBRARY…)` — lint flags it, and it can change without notice. `IAMConfigurationManager` is public only for the Flutter/React Native bridges. The SDK registers its own `ActivityLifecycleCallbacks`, re-attaches on rotation without re-counting the impression, and receives the `request_notification_permission` result through its own fragment / helper activity.
+
+**How to apply:** Audit check ANDROID-AUDIT-14 — any import of `com.pushengage.pushengage.iam.` other than `.action.IAMCustomActionHandler`, or an `onRequestPermissionsResult` override that forwards to PushEngage, is Worth fixing (remove it).
+
+## ANDROID-BP-18 — `IAMCustomActionHandler` is a plain interface: Kotlin needs `object :`, Java may use a lambda
+
+**Rule:** In Kotlin, implement the handler with an anonymous object (`object : IAMCustomActionHandler { override fun onCustomAction(actionId: String, parameters: Map<String, Any>) { … } }`) or a class. A trailing-lambda call `setIAMCustomActionHandler { … }` does not compile. Java lambdas are fine (single abstract method).
+
+**Why:** `IAMCustomActionHandler` is declared as a Kotlin `interface`, not a `fun interface`, so Kotlin does not apply SAM conversion to it (Java SAM conversion still applies from Java). Contrast with `FcmConfigErrorListener`, which *is* a `fun interface` and accepts a Kotlin lambda — the asymmetry trips customers up. (KI-A008.)
+
+**How to apply:** Audit check ANDROID-AUDIT-15 — `setIAMCustomActionHandler {` or `setIAMCustomActionHandler({` in a `.kt` file is Likely cause (compile error). Fix: `object :` expression.
+
 ---
 
 Spokes citing Android rules: just write the rule ID (e.g., "violates ANDROID-BP-01, MainActivity extends plain Activity"). Customer can click into this file for the why.

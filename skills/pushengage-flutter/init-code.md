@@ -147,6 +147,34 @@ import PushEngage
 3. Keep `super.application(application, didFinishLaunchingWithOptions: launchOptions)` as the final return — it triggers `FlutterAppDelegate`'s own setup.
 4. The `setBadgeCount(0)` and `setNotificationWillShowInForegroundHandler` calls are optional but recommended (matches example app). The latter controls whether banners show while the app is in the foreground — return `notification` to show it, `nil` to suppress.
 
+### UIScene life cycle (Flutter 3.35+ / iOS 27 SDK)
+
+Apps built with the iOS 27 SDK use the UIScene life cycle (Info.plist `UIApplicationSceneManifest`), and Flutter then registers plugins via `pluginRegistrant` instead of `GeneratedPluginRegistrant.register(with: self)`. The SDK example app at `1.1.0` looks like this:
+
+```swift
+@main
+@objc class AppDelegate: FlutterAppDelegate, FlutterPluginRegistrant {
+    override init() {
+        super.init()
+        PushEngage.swizzleInjection(isEnabled: true)
+    }
+
+    func register(with registry: FlutterPluginRegistry) {
+        GeneratedPluginRegistrant.register(with: registry)
+    }
+
+    override func application(_ application: UIApplication,
+                              didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        pluginRegistrant = self
+        PushEngage.setBadgeCount(count: 0)
+        return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+}
+```
+
+Plugin `1.1.0` configures the native SDK as soon as it is registered, so **the PushEngage integration itself needs no change** either way; use whichever scaffold the customer's Flutter version generated and keep `swizzleInjection` in `init()`. Don't migrate a customer's app to UIScene as part of a PushEngage integration.
+
 ### Manual (non-swizzling) mode
 
 Use only if a hard constraint forces it (e.g., another iOS SDK already swizzles `UIApplicationDelegate`). Defer to `../pushengage-ios/init-code.md` for the verbatim four-forward template (didRegisterForRemoteNotificationsWithDeviceToken, didReceiveRemoteNotification, willPresent, didReceive). Same four forwards apply — wrap them in `FlutterAppDelegate` subclass overrides and call the iOS-native PushEngage helpers explicitly.
@@ -171,6 +199,10 @@ When Dart calls `PushEngage.setAppId(...)`, the method channel forwards the App 
 - `ios/Podfile` — auto-edit + announce (covered in `install.md`).
 - `android/app/build.gradle`, `android/AndroidManifest.xml` — auto-edit + announce (covered in `install.md`).
 
+## In-App Messaging (optional, plugin ≥ 1.1.0)
+
+No init change. If campaigns use `custom` buttons, add an `onIAMCustomAction` subscription next to the `deepLinkStream` listener in the root widget and cancel it in `dispose()` (FLUTTER-BP-11). Don't call `setIAMCustomActionHandler` from `AppDelegate.swift` — the plugin owns it. Template and `triggerIAMEvent`: `in-app-messaging.md`.
+
 ## Next
 
-`permission-flow.md` for the runtime permission request flow, then `nse-setup.md` for rich notifications.
+`permission-flow.md` for the runtime permission request flow, then `nse-setup.md` for rich notifications. For in-app messages → `in-app-messaging.md`.

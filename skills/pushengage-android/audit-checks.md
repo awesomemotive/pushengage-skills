@@ -107,7 +107,7 @@ Note: `Application.onCreate` won't compile (no Activity context) — but custome
 - No version at all.
 
 **Category:** Worth fixing.
-**Fix:** pin exactly to the version in `version-matrix.md` (currently `0.1.0`).
+**Fix:** pin exactly to the version in `version-matrix.md` (currently `1.0.0`).
 
 ## Check ANDROID-AUDIT-09 — App ID UUID hardcoded
 
@@ -149,6 +149,30 @@ Note: `new TrackEvent(...)` (added in `0.1.0`) is **exempt** — `TrackEvent` sh
 **Fix:** rename the composable to `AppContent()` (convention). Don't rename the Application class — manifest references it.
 
 This check is a **heuristic** — collisions can also arise across different packages with `import` shadowing; the check above only catches same-module collisions.
+
+## Check ANDROID-AUDIT-13 — IAM custom-action handler registered only in an Activity
+
+**Reference:** ANDROID-BP-16.
+**Read:** all `.kt`/`.java` referencing `setIAMCustomActionHandler(`.
+**Pattern:** every call site is inside an `Activity` subclass (or a Fragment / Composable) and none is inside the `Application` subclass.
+**Category:** Worth fixing (custom buttons on other screens log `No custom action handler set` and never reach the app).
+**Fix:** move the registration to `Application.onCreate()` (before or after `Builder.build()`), route on `parameters["action"]` there (not `actionId`). Quote `in-app-messaging.md`.
+
+## Check ANDROID-AUDIT-14 — Internal IAM API or unnecessary forwarding
+
+**Reference:** ANDROID-BP-17.
+**Read:** all `.kt`/`.java` under `app/src/main/`.
+**Pattern:** an import of `com.pushengage.pushengage.iam.` that is NOT `com.pushengage.pushengage.iam.action.IAMCustomActionHandler` (e.g. `IAMConfigurationManager`, `IAMController`), OR an `onRequestPermissionsResult` / `onConfigurationChanged` override that forwards to a `PushEngage`/IAM class.
+**Category:** Worth fixing (restricted API — lint warning now, breakage on any SDK update; the forwarding is a no-op at best).
+**Fix:** delete the reference/forwarding. The public IAM surface is `triggerIAMEvent`, `setIAMCustomActionHandler`, `IAMCustomActionHandler`.
+
+## Check ANDROID-AUDIT-15 — Kotlin lambda passed to `setIAMCustomActionHandler`
+
+**Reference:** ANDROID-BP-18 / KI-A008.
+**Read:** all `.kt` files referencing `setIAMCustomActionHandler`.
+**Pattern:** `PushEngage.setIAMCustomActionHandler {` or `setIAMCustomActionHandler({` (trailing lambda / lambda argument) in Kotlin.
+**Category:** Likely cause (compile error — `IAMCustomActionHandler` is not a `fun interface`).
+**Fix:** replace with `object : IAMCustomActionHandler { override fun onCustomAction(actionId: String, parameters: Map<String, Any>) { … } }`. Java lambdas are unaffected.
 
 ---
 

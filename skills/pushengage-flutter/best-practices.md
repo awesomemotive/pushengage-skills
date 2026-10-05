@@ -46,11 +46,11 @@ Flutter-specific rules. Cite by rule ID in audit findings and debugging output. 
 
 ## FLUTTER-BP-06 — Adding `pod 'PushEngage'` to the main `Runner` target is redundant
 
-**Rule:** The Flutter plugin's podspec already pins `pod 'PushEngage', '1.0.0'` as a transitive dependency, so you do NOT need to add it to the `Runner` target. If it is present and pinned to `1.0.0` it is harmless (the SDK's own example Podfile does this). Only add `pod 'PushEngageExtension', '1.0.0'` to the NSE and NCE target blocks (which don't go through Flutter's plugin resolution and must link the extension-safe pod, NOT the app pod).
+**Rule:** The Flutter plugin's podspec already pins `pod 'PushEngage', '1.1.0'` as a transitive dependency, so you do NOT need to add it to the `Runner` target. If it is present and pinned to `1.1.0` it is harmless (the SDK's own example Podfile does this). Only add `pod 'PushEngageExtension', '1.1.0'` to the NSE and NCE target blocks (which don't go through Flutter's plugin resolution and must link the extension-safe pod, NOT the app pod).
 
-**Why:** A redundant `pod 'PushEngage', '1.0.0'` in `Runner` resolves to the same version the plugin expects and builds fine. The risk only appears if it pins a DIFFERENT version — then the Podfile resolver picks the highest constraint and can quietly bump the native SDK behind the plugin's back, leading to symbol conflicts.
+**Why:** A redundant `pod 'PushEngage', '1.1.0'` in `Runner` resolves to the same version the plugin expects and builds fine. The risk only appears if it pins a DIFFERENT version — then the Podfile resolver picks the highest constraint and can quietly bump the native SDK behind the plugin's back, leading to symbol conflicts.
 
-**How to apply:** Audit check FLUTTER-AUDIT-10. Read `ios/Podfile`. If `target 'Runner' do ... pod 'PushEngage', <version> ... end` pins a version other than `1.0.0`, flag it (worth fixing). A matching `1.0.0` is cosmetic/redundant only.
+**How to apply:** Audit check FLUTTER-AUDIT-10. Read `ios/Podfile`. If `target 'Runner' do ... pod 'PushEngage', <version> ... end` pins a version other than `1.1.0`, flag it (worth fixing). A matching `1.1.0` is cosmetic/redundant only.
 
 ## FLUTTER-BP-07 — Treat subscriber IDs and profile IDs as PII
 
@@ -76,13 +76,29 @@ Flutter-specific rules. Cite by rule ID in audit findings and debugging output. 
 
 **How to apply:** Surface as a checklist item during `install.md` Step 3. Audit equivalent: if `ios/Podfile.lock` doesn't mention `pushengage_flutter_sdk` but `pubspec.yaml` does, flag as a missing `pod install` step.
 
-## FLUTTER-BP-10 — Pin `pushengage_flutter_sdk` with `^1.0.0`, not a wide range
+## FLUTTER-BP-10 — Pin `pushengage_flutter_sdk` with `^1.1.0`, not a wide range
 
-**Rule:** Use a caret-pinned version in `pubspec.yaml`: `pushengage_flutter_sdk: ^1.0.0`. Don't use `>=1.0.0` or `any`.
+**Rule:** Use a caret-pinned version in `pubspec.yaml`: `pushengage_flutter_sdk: ^1.1.0`. Don't use `>=1.0.0` or `any`.
 
-**Why:** As of `1.0.0` the SDK is on standard semver, so `^1.0.0` correctly allows non-breaking `1.x` upgrades while excluding a future `2.0.0` that could change the API. The old pre-1.0 caveat (any increment could break) no longer applies — this is now plain caret semantics. Using `any` or an open `>=` still risks `pub upgrade` quietly pulling a major bump with a different API shape, so keep the caret. Mirror of XP-BP-06 and the iOS spoke's exact-pin rule.
+**Why:** As of `1.0.0` the SDK is on standard semver, so `^1.1.0` correctly allows non-breaking `1.x` upgrades while excluding a future `2.0.0` that could change the API. The old pre-1.0 caveat (any increment could break) no longer applies — this is now plain caret semantics. Using `any` or an open `>=` still risks `pub upgrade` quietly pulling a major bump with a different API shape, so keep the caret. Mirror of XP-BP-06 and the iOS spoke's exact-pin rule.
 
 **How to apply:** Audit check FLUTTER-AUDIT-01 (combined with KI-F001 stale-version detection). If `pubspec.yaml` shows `^0.0.1`, any pre-`1.0.0` pin, `>= 1.0.0`, `any`, or a major-version-only constraint, flag with this rule ID. Quote the fix.
+
+## FLUTTER-BP-11 — Subscribe to `onIAMCustomAction` in a long-lived widget and cancel in `dispose()`
+
+**Rule:** Listen to `PushEngage.onIAMCustomAction` from a widget that lives for the whole session (the root widget, next to the `deepLinkStream` listener), keep the `StreamSubscription`, and cancel it in `dispose()`. Route on `action.parameters['action']` (the dashboard Action name — `action.actionId` is a dashboard-generated internal key); treat `action.parameters` as `Map<String, String>`. Don't wire IAM routing into the `deepLinkStream` handler — IAM taps never arrive there.
+
+**Why:** `onIAMCustomAction` is a broadcast stream; hot reload without cancellation stacks duplicate listeners and fires the same custom action several times. Unlike push taps there is no cold-boot buffering to worry about (a tap can't precede Dart), so this is lifecycle hygiene rather than a delivery-timing rule — but a subscription buried in a transient route stops receiving actions when that route is popped, while campaigns can show on any screen.
+
+**How to apply:** Audit check FLUTTER-AUDIT-14 — `onIAMCustomAction.listen(` without a stored subscription / matching `cancel()` is Cosmetic; a subscription inside a non-root, transient route is Worth fixing.
+
+## FLUTTER-BP-12 — `platform :ios, '15.0'` in `ios/Podfile` from plugin `1.1.0`
+
+**Rule:** When bumping to `pushengage_flutter_sdk ^1.1.0`, set `platform :ios, '15.0'` (or higher) in `ios/Podfile`, the `Runner` deployment target, and the NSE/NCE deployment targets. If the customer must keep iOS 12–14, they stay on `1.0.0` without IAM.
+
+**Why:** Plugin `1.1.0`'s podspec and the transitive `PushEngage 1.1.0` / `PushEngageExtension 1.1.0` pods all declare iOS 15.0. `flutter pub get` still succeeds, so nothing warns until `pod install` fails with "The platform of the target `Runner` (iOS 12.0) is not compatible with `pushengage_flutter_sdk (1.1.0)`, which does not support `iOS 12.0`" (KI-F013).
+
+**How to apply:** Audit check FLUTTER-AUDIT-15.
 
 ---
 

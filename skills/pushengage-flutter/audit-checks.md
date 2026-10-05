@@ -16,7 +16,7 @@ Run order: read all relevant files once, apply each check, group findings by cat
 
 **References:** FLUTTER-BP-10, KI-F001.
 
-**Fix:** bump to `^1.0.0` in `pubspec.yaml`, then `flutter pub upgrade pushengage_flutter_sdk`. The current published version is `1.0.0`; older pins like `^0.0.1` are missing most of the modern API. Quote `install.md` Step 1.
+**Fix:** bump to `^1.1.0` in `pubspec.yaml`, then `flutter pub upgrade pushengage_flutter_sdk`. The current published version is `1.1.0` (`1.0.0` lacks In-App Messaging); older pins like `^0.0.1` are missing most of the modern API. Quote `install.md` Step 1.
 
 ---
 
@@ -44,7 +44,7 @@ Run order: read all relevant files once, apply each check, group findings by cat
 
 **References:** FLUTTER-BP-06, KI-F011.
 
-**Fix:** change to `pod 'PushEngageExtension', '1.0.0'` in the NSE and NCE target blocks (the extension-safe pod that `PushEngage` depends on). After editing, run `cd ios && pod install` then clean build (Xcode → Product → Clean Build Folder).
+**Fix:** change to `pod 'PushEngageExtension', '1.1.0'` in the NSE and NCE target blocks (the extension-safe pod that `PushEngage` depends on). After editing, run `cd ios && pod install` then clean build (Xcode → Product → Clean Build Folder).
 
 ---
 
@@ -60,7 +60,7 @@ Run order: read all relevant files once, apply each check, group findings by cat
 
 **References:** FLUTTER-BP-06, FLUTTER-AUDIT-03.
 
-**Fix:** change the extension block's pin to `pod 'PushEngageExtension', '1.0.0'`, then `cd ios && pod install`. See `nse-setup.md` / `nce-setup.md`.
+**Fix:** change the extension block's pin to `pod 'PushEngageExtension', '1.1.0'`, then `cd ios && pod install`. See `nse-setup.md` / `nce-setup.md`.
 
 ---
 
@@ -141,13 +141,13 @@ Run order: read all relevant files once, apply each check, group findings by cat
 
 **Files to check:** `ios/Podfile`.
 
-**Pattern:** Inside `target 'Runner' do ... end`, a line `pod 'PushEngage', <version>` that pins a version OTHER than `1.0.0` (the version the Flutter plugin pulls transitively). An explicit `pod 'PushEngage', '1.0.0'` matching the transitive pin is NOT a finding — the SDK's own example Podfile does exactly this and builds fine.
+**Pattern:** Inside `target 'Runner' do ... end`, a line `pod 'PushEngage', <version>` that pins a version OTHER than `1.1.0` (the version the Flutter plugin pulls transitively). An explicit `pod 'PushEngage', '1.1.0'` matching the transitive pin is NOT a finding — the SDK's own example Podfile does exactly this and builds fine.
 
-**Categorize:** Cosmetic if pinned to `1.0.0` (redundant only); Worth fixing if it pins a different version (risks a version mismatch with the transitive pin).
+**Categorize:** Cosmetic if pinned to `1.1.0` (redundant only); Worth fixing if it pins a different version (risks a version mismatch with the transitive pin).
 
 **References:** FLUTTER-BP-06.
 
-**Fix:** either drop the redundant line from the `Runner` target, or align it to `1.0.0`. NSE and NCE targets DO need an explicit pin, but for the extension-safe pod (`pod 'PushEngageExtension', '1.0.0'`), since they're separate from Flutter's plugin resolution.
+**Fix:** either drop the redundant line from the `Runner` target, or align it to `1.1.0`. NSE and NCE targets DO need an explicit pin, but for the extension-safe pod (`pod 'PushEngageExtension', '1.1.0'`), since they're separate from Flutter's plugin resolution.
 
 ---
 
@@ -190,6 +190,32 @@ Run order: read all relevant files once, apply each check, group findings by cat
 **References:** XP-BP-01 (cross-platform — secrets / identifiers belong outside source).
 
 **Fix:** move the UUID(s) to `String.fromEnvironment('PUSHENGAGE_APP_ID_IOS')` / `--dart-define` arguments at build time, or to a separate untracked config file. The App ID UUID is technically not a secret (it's transmitted in every API call as a public identifier), but the same XP-BP-01 hygiene applies for environment management (dev / test / prod).
+
+## FLUTTER-AUDIT-14 — `onIAMCustomAction` subscription without cancel / in a transient route
+
+**Files to check:** all `lib/**/*.dart` containing `onIAMCustomAction`.
+
+**Pattern:** (a) `PushEngage.onIAMCustomAction.listen(...)` whose returned `StreamSubscription` is not stored and cancelled in `dispose()`; OR (b) the subscription lives in a widget that is pushed/popped during the session (a detail screen, a dialog) rather than the root / a session-long widget.
+
+**Categorize:** (a) Cosmetic (duplicate callbacks after hot reload); (b) Worth fixing (custom buttons on other screens never reach the app once that route is gone).
+
+**References:** FLUTTER-BP-11.
+
+**Fix:** move the listener to the root widget's `initState` next to `deepLinkStream.listen`, store the subscription, cancel in `dispose()`. Quote `in-app-messaging.md`.
+
+---
+
+## FLUTTER-AUDIT-15 — `ios/Podfile` platform below 15.0 with plugin `^1.1.0`
+
+**Files to check:** `ios/Podfile`, `pubspec.yaml`.
+
+**Pattern:** `pushengage_flutter_sdk: ^1.1.0` (or any pin resolving to `>= 1.1.0`) AND `platform :ios, '<15.0'` (e.g. `'12.0'`, `'13.0'`, `'14.0'`, or the line commented out so the Flutter default applies).
+
+**Categorize:** Likely cause (`pod install` fails: "pushengage_flutter_sdk (1.1.0) … does not support iOS <target>").
+
+**References:** FLUTTER-BP-12, KI-F013.
+
+**Fix:** set `platform :ios, '15.0'`, align the `Runner` and NSE/NCE deployment targets to 15, then `cd ios && pod install`. If iOS 12–14 is required, pin the plugin to `1.0.0` instead and note IAM is unavailable.
 
 ---
 

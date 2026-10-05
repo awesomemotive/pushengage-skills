@@ -8,11 +8,12 @@ The reason: PushEngage's public surface area is small enough that hallucinating 
 
 | URL | Purpose | Caveats |
 |---|---|---|
-| `https://www.pushengage.com/documentation/setting-up-app-push-notification-in-flutter-using-pushengage.md` | Full Flutter setup walkthrough | **Stale on three version pins:** `pushengage_flutter_sdk ^0.0.1` (actual `^1.0.0`), NSE pod `~>0.0.4` (actual `pod 'PushEngageExtension', '1.0.0'`), NCE pod `0.0.4` (actual `pod 'PushEngageExtension', '1.0.0'`). Defer to this spoke's `version-matrix.md`. |
+| `https://www.pushengage.com/documentation/setting-up-app-push-notification-in-flutter-using-pushengage.md` | Full Flutter setup walkthrough | **Stale on three version pins:** `pushengage_flutter_sdk ^0.0.1` (actual `^1.1.0`), NSE pod `~>0.0.4` (actual `pod 'PushEngageExtension', '1.1.0'`), NCE pod `0.0.4` (actual `pod 'PushEngageExtension', '1.1.0'`). Defer to this spoke's `version-matrix.md`. |
 | `https://www.pushengage.com/api/mobile-sdk/flutter/sdk-reference.md` | API quickstart landing | At capture time, returned a generic landing card with no method-level detail. May be populated later. Verify before extraction. |
 | `https://pub.dev/packages/pushengage_flutter_sdk` | Canonical published version + changelog | Source of truth for what version is actually shipped. |
 | `https://github.com/awesomemotive/pushengage-flutter-sdk` | Source code + release tags | Source of truth for the public Dart API surface. The published Dart API is the canonical method list. |
 | `https://github.com/awesomemotive/pushengage-flutter-sdk/releases` | Release notes | Linked from the repo changelog. |
+| `https://www.pushengage.com/api/mobile-sdk/in-app-messaging.md` | Cross-platform In-App Messaging guide (triggers, audience, actions, frequency caps, troubleshooting) | **Not yet published as of 2026-10-05 (returns 404)** — the page exists only on the api-docs `task/iam-app` branch. Until it is live, treat this spoke's `in-app-messaging.md`, `../pushengage/in-app-messaging.md`, and the released SDK README's In-App Messaging section (GitHub URL above) as the source of truth. Does NOT document the dashboard click-path for creating campaigns. |
 
 ## Not allowed
 

@@ -1,6 +1,6 @@
 # Android SDK Install
 
-Gradle setup. The Android SDK is published on **JitPack** (not Maven Central): coordinate `com.github.awesomemotive:pushengage-android-sdk:0.1.0`. Authoritative against `version-matrix.md`.
+Gradle setup. The Android SDK is published on **JitPack** (not Maven Central): coordinate `com.github.awesomemotive:pushengage-android-sdk:1.0.0`. Authoritative against `version-matrix.md`.
 
 ## Decision rule — Groovy DSL vs Kotlin DSL
 
@@ -96,7 +96,7 @@ android {
 dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.5.1')
     implementation 'com.google.firebase:firebase-messaging'
-    implementation 'com.github.awesomemotive:pushengage-android-sdk:0.1.0'
+    implementation 'com.github.awesomemotive:pushengage-android-sdk:1.0.0'
 }
 ```
 
@@ -164,7 +164,7 @@ android {
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
     implementation("com.google.firebase:firebase-messaging")
-    implementation("com.github.awesomemotive:pushengage-android-sdk:0.1.0")
+    implementation("com.github.awesomemotive:pushengage-android-sdk:1.0.0")
 }
 ```
 
@@ -197,7 +197,7 @@ The `android:name=".PEApplication"` registration is added in `init-code.md` Step
 ## Version pin
 
 Always pin **exactly** to the version in `version-matrix.md`:
-- PushEngage SDK: `0.1.0`
+- PushEngage SDK: `1.0.0`
 - google-services plugin: `4.4.2`
 - firebase-bom: `33.5.1`
 

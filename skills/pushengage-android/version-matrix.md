@@ -4,13 +4,15 @@ Single source of truth for Android-SDK-version-pinned data. Other files in this 
 
 ## Current stable version
 
-**Android SDK:** `0.1.0` — pinned exactly in `install.md` and the audit advisory.
+**Android SDK:** `1.0.0` — pinned exactly in `install.md` and the audit advisory.
 
+> **Release note (2026-09-29):** Android SDK `1.0.0` (JitPack tag `1.0.0`; `getSdkVersion()` returns `"1.0.0"`) adds **In-App Messaging**: `triggerIAMEvent(...)` (3 overloads), `setIAMCustomActionHandler(IAMCustomActionHandler)`, and the `com.pushengage.pushengage.iam.action.IAMCustomActionHandler` interface. No new Gradle dependency, host manifest entry, permission, minSdk change, or init change — IAM activates inside `Builder.build()`; the library manifest merges in an internal `<provider>` automatically. The AAR now ships consumer R8/ProGuard rules, so minified builds need no host configuration. Room schema migrates 1→2 automatically. `requestNotificationPermission` still requires `ComponentActivity`. See `in-app-messaging.md`.
+>
 > **Release note (2026-06):** Android SDK `0.1.0` (released 2026-06-05, JitPack tag `0.1.0`, `versionCode 7`; `getSdkVersion()` returns `"0.1.0"`). Adds the User Identification API (`identify`, `logout`, `trackEvent`), `setBadgeCount`, and `setFcmConfigErrorListener`. Additive and non-breaking from `0.0.6`. No dependency-pin, minSdk, or install-step change.
 
 ## Public API surface (per version)
 
-| Method | `0.1.0` | Notes |
+| Method | `1.0.0` | Notes |
 |---|---|---|
 | `PushEngage.Builder().addContext(Context).setAppId(String).build()` | ✅ | Builder pattern. Called in `Application.onCreate()`. |
 | `requestNotificationPermission(ComponentActivity, PushEngagePermissionCallback)` | ✅ | **`ComponentActivity` required.** Plain `Activity` does NOT compile. `AppCompatActivity` / `FragmentActivity` / `androidx.activity.ComponentActivity` all qualify. (See ANDROID-BP-01 / KI-A002.) |
@@ -18,7 +20,7 @@ Single source of truth for Android-SDK-version-pinned data. Other files in this 
 | `subscribe()` | ✅ | Auto-called on permission grant; rarely needs manual invocation. |
 | `setSmallIconResource(String)` | ✅ | Pass a drawable **name** that exists in `res/drawable*/`; if it doesn't resolve, the SDK falls back to its bundled default bell icon (`ic_stat_notification_default`). (See ANDROID-BP-04.) |
 | `enableLogging(Boolean)` | ✅ | Same name across all platforms. Gate behind `BuildConfig.DEBUG`. |
-| `getSdkVersion()` → `String` | ✅ | **Available on Android.** Returns the SDK version string (now `"0.1.0"`). Always present on Android; iOS lacked it through `0.0.6` and added it in `0.1.0` (the iOS spoke now pins `1.0.0`, which has it). |
+| `getSdkVersion()` → `String` | ✅ | **Available on Android.** Returns the SDK version string (now `"1.0.0"`). Always present on Android; iOS lacked it through `0.0.6` and added it in `0.1.0` (the iOS spoke now pins `1.1.0`, which has it). |
 | `getSubscriberId(PushEngageResponseCallback)` | ✅ | Callback-based. `PushEngageResponseCallback` has TWO abstract methods — `onSuccess(Object)` and `onFailure(Integer, String)` — so Kotlin lambda/SAM conversion does NOT compile; use an `object :` expression. Treat the result as PII (XP-BP-05). |
 | `getDeviceTokenHash()` | ⚠️ | Returns the stored device-token hash synchronously. Not deprecated (no `@Deprecated` in source), but prefer `getSubscriberId` in new integrations — it is async and the cross-platform-consistent API. Note it is not identical to `getSubscriberId`: this returns the stored hash unconditionally, whereas `getSubscriberId` returns null unless subscribed. |
 | `sendTriggerEvent(trigger)` | ✅ | Parameter is named `trigger` — NOT `triggerCampaign`. |
@@ -40,6 +42,9 @@ Single source of truth for Android-SDK-version-pinned data. Other files in this 
 | `deleteSubscriberAttributes(List<String>[, callback])` / `getSubscriberAttributes(PushEngageResponseCallback)` / `getSubscriberDetails(List<String>, PushEngageResponseCallback)` | ✅ (since 0.0.6) | |
 | `sendGoal(Goal[, callback])` | ✅ (since 0.0.6) | |
 | `automatedNotification(TriggerStatusType[, callback])` | ✅ (since 0.0.6) | |
+| `triggerIAMEvent(String eventName)` / `triggerIAMEvent(String, Map<String, Object> parameters)` / `triggerIAMEvent(String, Map<String, Object>, PushEngageResponseCallback)` | ✅ NEW (1.0.0) | In-App Messaging custom trigger. Blank name → `onFailure(400, "Event name is required")`. Deliberately NOT gated on subscription/permission/site status. `onSuccess(null)` = event accepted, NOT "a message was shown". Parameter values are stringified before matching (`120`, `120.0` → `"120"`). See `in-app-messaging.md`. |
+| `setIAMCustomActionHandler(IAMCustomActionHandler handler)` | ✅ NEW (1.0.0) | Receives `custom` IAM button taps. `null` clears. Safe to call BEFORE `Builder.build()` (stashed and applied when IAM is ready). Register app-wide in `Application.onCreate()` (ANDROID-BP-16). Callback runs on the UI thread. |
+| `IAMCustomActionHandler` (interface, `com.pushengage.pushengage.iam.action`) | ✅ NEW (1.0.0) | `fun onCustomAction(actionId: String, parameters: Map<String, Any>)`. **Route on `parameters["action"]`** (dashboard Action name); `actionId` is a dashboard-generated internal key (e.g. `"t04B05"`). Kotlin `interface` (NOT `fun interface`) → Kotlin needs `object : IAMCustomActionHandler { … }`; Java lambdas work. Scalar parameter values arrive as `String`s. The ONLY public IAM type — `IAMController`, `IAMConfigurationManager`, `IAMPosition`, etc. are `internal` / `@RestrictTo` and must never appear in customer code (ANDROID-BP-17). |
 
 ### Data class shapes (Kotlin)
 
@@ -53,7 +58,7 @@ Single source of truth for Android-SDK-version-pinned data. Other files in this 
 ## Dependency coordinates
 
 - Maven coordinate (JitPack-hosted, NOT Maven Central):
-  `com.github.awesomemotive:pushengage-android-sdk:0.1.0`
+  `com.github.awesomemotive:pushengage-android-sdk:1.0.0`
 - Required repository: `maven { url 'https://jitpack.io' }` (Groovy) / `maven { url = uri("https://jitpack.io") }` (Kotlin DSL).
 - Add JitPack inside `dependencyResolutionManagement { repositories { ... } }` in `settings.gradle*` for modern projects, or inside `allprojects { repositories { ... } }` in the project-level `build.gradle*` for legacy.
 
@@ -80,13 +85,13 @@ If a customer is constrained to `minSdk 16..20`, the SDK works — note that the
 
 ## Package channels
 
-- JitPack (only): `com.github.awesomemotive:pushengage-android-sdk:0.1.0`.
+- JitPack (only): `com.github.awesomemotive:pushengage-android-sdk:1.0.0` (IAM ships from this version; `0.1.0` and earlier have no IAM API).
 - Source of truth for tags: `https://github.com/awesomemotive/pushengage-android-sdk` (see `references.md`).
 - NOT published to Maven Central or Google's Maven repo. Do NOT suggest `mavenCentral()` as a sole repository — JitPack must be present.
 
 ## Known-issue version bounds
 
-Maintained in `pushengage-debug/known-issues.md`. Android entries use IDs in the `KI-A0xx` range. Each row references this matrix's `0.1.0` baseline. For `Goal`/`TriggerCampaign`/`TriggerAlert`, Java callers pass all positional args (Kotlin can use defaults); `TrackEvent` (0.1.0) accepts 1–5 args.
+Maintained in `pushengage-debug/known-issues.md`. Android entries use IDs in the `KI-A0xx` range. Each row references this matrix's `1.0.0` baseline. For `Goal`/`TriggerCampaign`/`TriggerAlert`, Java callers pass all positional args (Kotlin can use defaults); `TrackEvent` (0.1.0) accepts 1–5 args.
 
 ---
 
@@ -99,7 +104,8 @@ Maintained in `pushengage-debug/known-issues.md`. Android entries use IDs in the
    - Whether `setSmallIconResource` gains a log warning on missing drawable.
    - Whether Kotlin data classes (`TriggerCampaign`, `TriggerAlert`, `Goal`) gain `@JvmOverloads`.
 
-   As of `0.1.0` (verified): `requestNotificationPermission` still requires `ComponentActivity`; `setSmallIconResource` still falls back silently with no missing-drawable log; and only the new `TrackEvent` class gained `@JvmOverloads` — `Goal`, `TriggerCampaign`, and `TriggerAlert` still lack it.
+   As of `1.0.0` (verified): `requestNotificationPermission` still requires `ComponentActivity`; `setSmallIconResource` still falls back silently with no missing-drawable log; and only the new `TrackEvent` class gained `@JvmOverloads` — `Goal`, `TriggerCampaign`, and `TriggerAlert` still lack it.
 4. Re-check companion library pins. Bump `google-services` and `firebase-bom` only after testing — Firebase BOM bumps occasionally break transitive deps.
 5. Add or close known-issue rows in `pushengage-debug/known-issues.md` (KI-A00x entries).
 6. Update `references.md` if the GitHub release tag URL changes.
+7. Re-verify the IAM surface (`triggerIAMEvent` overloads, `setIAMCustomActionHandler`, `IAMCustomActionHandler`) against `in-app-messaging.md` and audit checks ANDROID-AUDIT-13/14.

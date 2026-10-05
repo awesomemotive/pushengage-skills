@@ -28,10 +28,10 @@ Auto-edit the Podfile — wrap the new NSE target inside the main target block. 
 ```ruby
 target 'YourMainTarget' do
   use_frameworks!
-  pod 'PushEngage', '1.0.0'
+  pod 'PushEngage', '1.1.0'
 
   target 'PushEngageNotificationServiceExtension' do
-    pod 'PushEngageExtension', '1.0.0'
+    pod 'PushEngageExtension', '1.1.0'
   end
 end
 ```

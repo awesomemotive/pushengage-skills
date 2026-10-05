@@ -46,7 +46,7 @@ React Native-specific rules. Cite by rule ID in audit findings and debugging out
 
 ## RN-BP-06 — Do NOT add `pod 'PushEngage'` to the main app's `Runner`-style target
 
-**Rule:** The RN plugin pins `pod 'PushEngage', '1.0.0'` as a transitive dependency. Do NOT redeclare it in the customer's main app target in `ios/Podfile`. Only add `pod 'PushEngageExtension', '1.0.0'` (the extension-safe pod, new with the 1.0.0 two-pod split) to NSE/NCE target blocks (which don't go through RN's plugin resolution).
+**Rule:** The RN plugin pins `pod 'PushEngage', '1.1.0'` as a transitive dependency. Do NOT redeclare it in the customer's main app target in `ios/Podfile`. Only add `pod 'PushEngageExtension', '1.1.0'` (the extension-safe pod, new with the 1.0.0 two-pod split) to NSE/NCE target blocks (which don't go through RN's plugin resolution).
 
 **Why:** Redeclaring the pod in the main target risks resolving a different version than what the RN plugin expects → symbol conflicts, runtime crashes, build-time errors when the iOS-native API surface diverges between versions.
 
@@ -78,9 +78,9 @@ React Native-specific rules. Cite by rule ID in audit findings and debugging out
 
 ## RN-BP-10 — Pin `@pushengage/pushengage-react-native` with a caret minor
 
-**Rule:** Use a caret-pinned version in `package.json`: `"@pushengage/pushengage-react-native": "^1.0.0"`. Don't use `*`, `latest`, or `>=`.
+**Rule:** Use a caret-pinned version in `package.json`: `"@pushengage/pushengage-react-native": "^1.1.0"`. Don't use `*`, `latest`, or `>=`.
 
-**Why:** Caret-pinning lets patch upgrades through but not minor/major bumps that may include breaking changes. The team labels this release `1.0.0`; treat minor bumps as still potentially breaking until the API stabilizes. Mirror of XP-BP-06 / FLUTTER-BP-10.
+**Why:** Caret-pinning lets compatible `1.x` upgrades through but excludes a future `2.0.0` that could change the API. `^1.1.0` is the floor because In-App Messaging (`triggerIAMEvent`, `onIAMCustomAction`) only exists from `1.1.0`. Mirror of XP-BP-06 / FLUTTER-BP-10.
 
 **How to apply:** Audit check RN-AUDIT-13-adjacent. If `package.json` shows `"*"`, `"latest"`, `">=0.0.0"`, or any too-loose constraint, flag with this rule ID.
 
@@ -99,6 +99,22 @@ React Native-specific rules. Cite by rule ID in audit findings and debugging out
 **Why:** On iOS the force-quit launch tap is delivered before JS can attach to `onValueChanged`; call `getInitialNotification()` once on startup to recover it, otherwise that launch tap isn't seen by `onValueChanged`. Android resolves `null`, so the call is cross-platform-safe. The cold-boot tap is routed exclusively to the pull API and never replayed through `onValueChanged`. New in 1.0.0.
 
 **How to apply:** Audit check RN-AUDIT-17. If `onValueChanged` is registered but `getInitialNotification` is never called, flag as "worth fixing" with KI-RN003.
+
+## RN-BP-14 — Subscribe to `onIAMCustomAction` in the root `useEffect` and remove it on cleanup
+
+**Rule:** Call `PushEngage.onIAMCustomAction(cb)` from the root component's startup `useEffect` (empty deps, next to `onValueChanged`), keep the returned `EventSubscription`, and call `.remove()` in the cleanup. Route on `parameters.action` (the dashboard Action name — `actionId` is a dashboard-generated internal key); `parameters` values are strings. Don't wire IAM routing into `onValueChanged` — IAM taps never arrive there.
+
+**Why:** Without cleanup, fast refresh and remounts stack duplicate listeners and fire the same custom action several times. There is no cold-boot buffering to worry about (a tap can't precede JS), so this is lifecycle hygiene — but a subscription inside a screen that unmounts stops receiving actions while campaigns can show on any screen.
+
+**How to apply:** Audit check RN-AUDIT-19.
+
+## RN-BP-15 — Never call `setIAMCustomActionHandlerEnabled` (or `getIAMDatabaseState`) from JS
+
+**Rule:** Subscribe to `onIAMCustomAction` directly. Don't call `PushEngage.setIAMCustomActionHandlerEnabled(...)` — native forwarding is enabled automatically on module load — and don't reference `getIAMDatabaseState()`, which was removed before release.
+
+**Why:** `setIAMCustomActionHandlerEnabled` exists only on the native codegen spec and is called once by the module itself; it is not on the exported `PushEngage` object, so calling it throws `undefined is not a function` (same pattern as the removed `setFcmConfigErrorListenerEnabled`). Pre-release design docs mention both names; the shipped `1.1.0` API is `triggerIAMEvent` + `onIAMCustomAction` + the `IAMCustomAction` type.
+
+**How to apply:** Audit check RN-AUDIT-20 (Likely cause — runtime TypeError). KI-RN015.
 
 ---
 

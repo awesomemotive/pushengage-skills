@@ -1,11 +1,11 @@
 ---
 name: pushengage-android
-description: Use ONLY when the active repo is a native Android app (build.gradle or build.gradle.kts at root with AndroidManifest.xml under app/src/main) AND there is NO `pubspec.yaml` with a `flutter:` SDK block AND NO `package.json` with `react-native` or `expo` dependency. Handles full PushEngage integration end-to-end, plus debugging existing integrations. Do not use for iOS, Flutter, or React Native apps even if PushEngage is mentioned.
+description: Use ONLY when the active repo is a native Android app (build.gradle or build.gradle.kts at root with AndroidManifest.xml under app/src/main) AND there is NO `pubspec.yaml` with a `flutter:` SDK block AND NO `package.json` with `react-native` or `expo` dependency. Handles full PushEngage integration end-to-end (push notifications and in-app messaging), plus debugging existing integrations. Do not use for iOS, Flutter, or React Native apps even if PushEngage is mentioned.
 license: MIT
 compatibility: Works with any agent that supports the Agent Skills (SKILL.md) standard, including Claude Code and Cowork. Needs filesystem read access and a shell to detect the project type; some steps fetch allowlisted documentation URLs.
 metadata:
   author: PushEngage
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # PushEngage — Android Spoke
@@ -19,6 +19,7 @@ You're working in an Android app. This skill walks the customer through integrat
 | "Integrate PushEngage" / "Set up PushEngage" (greenfield or partial) | This file's "Integration flow" section below. |
 | "PushEngage isn't working" / specific symptom | Hand off to `pushengage-debug/SKILL.md` (skill: `pushengage-debug`). |
 | "Audit my PushEngage setup" | Read `audit-checks.md` and run the checks. |
+| "Set up / add in-app messages", "trigger an in-app message", "in-app message never shows", custom action buttons | Read `in-app-messaging.md` (Android API), then `../pushengage/in-app-messaging.md` for the platform-independent semantics. Requires SDK `1.0.0`. |
 | Concept / terminology question | Read `../pushengage/concepts.md`. |
 | Best practices / rule lookup | Read `best-practices.md` (Android-specific) or `../pushengage/best-practices.md` (cross-platform). |
 | API surface / "does method X exist" | Read `version-matrix.md` first; if not listed, fetch only URLs from `references.md`. |
@@ -97,6 +98,10 @@ Read `permission-flow.md`. Pick the snippet for the customer's MainActivity base
 
 Per XP-BP-03, prompt for permission at a meaningful moment, not immediately on `onCreate`. Suggest the right call site; do not force `onCreate`.
 
+#### 3e — In-App Messaging — OPTIONAL
+
+Read `in-app-messaging.md` only if the customer asks for in-app messages (or already has IAM campaigns on the dashboard). Default: skip; mention it exists in one line. IAM needs nothing beyond Part 3b — no dependency, manifest entry, permission, or lifecycle forwarding. The only optional code is an app-wide `setIAMCustomActionHandler` registration in the `Application` class (diff + confirm) and `triggerIAMEvent` calls at the product moments the campaigns key off. IAM verification is separate from Part 4 and does **not** need Google Play Services.
+
 ### Part 4 — Verification
 
 The success criterion is **a real test notification reaches the customer's device**.
@@ -134,6 +139,7 @@ If the customer says any of the following — or if Part 4 verification fails �
 - "App force-closes on launch after install" (often an `Application` init order issue or missing `google-services.json`)
 - "Subscriber count looks wrong" / "I'm not registering as a subscriber"
 - "Deep link from notification doesn't open the right screen"
+- "In-app message never appears" / "in-app button does nothing" / "custom action never reaches my code" / "`setIAMCustomActionHandler { }` doesn't compile" → diagnostic tree Branch 8 + `in-app-messaging.md` (KI-A008 for the lambda compile error)
 
 The debug skill handles audit + known-issues + symptom tree.
 
@@ -143,4 +149,5 @@ The debug skill handles audit + known-issues + symptom tree.
 - **Don't auto-edit the customer's `Application` subclass or `MainActivity` without showing the diff and getting confirmation.** Entry-point code is diff + confirm. Config files (`build.gradle*`, `AndroidManifest.xml`, `settings.gradle*`) are auto-edit + announce.
 - **Don't touch files outside the integration scope.** No refactoring, no Kotlin/Java migrations, no Gradle version bumps that weren't required, no formatting passes.
 - **Don't fetch URLs not in `references.md`.** The allowlist exists so the customer can trust where you got information.
+- **Don't reference internal IAM classes** (`IAMConfigurationManager`, `IAMController`, anything under `com.pushengage.pushengage.iam.*` except `iam.action.IAMCustomActionHandler`) and don't tell customers to forward `onRequestPermissionsResult` for IAM — the public IAM surface is exactly `triggerIAMEvent` (3 overloads), `setIAMCustomActionHandler`, and `IAMCustomActionHandler`. Don't invent the dashboard click-path for creating IAM campaigns.
 - **Don't ask the customer for Service Account JSON contents in chat.** It is a secret. They upload the file directly to the PushEngage dashboard; you only need to know the local path and confirm the upload succeeded.

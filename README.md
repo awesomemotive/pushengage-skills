@@ -8,7 +8,7 @@
 
 # PushEngage Agent Skills
 
-Helps an AI coding agent integrate and debug the [PushEngage](https://www.pushengage.com/) push-notification SDK across **iOS, Android, Flutter, and React Native**.
+Helps an AI coding agent integrate and debug the [PushEngage](https://www.pushengage.com/) mobile SDK — push notifications **and in-app messaging** — across **iOS, Android, Flutter, and React Native**.
 
 The six skills follow the open [Agent Skills (`SKILL.md`) standard](https://agentskills.io/specification), so they work with **any agent that supports it** — Claude Code, Cowork, and other SKILL.md-compatible agents — while also shipping as an installable Claude Code plugin.
 
@@ -47,6 +47,7 @@ After installing, just talk to Claude:
 - "Help me integrate PushEngage into this app." — runs the full integration flow.
 - "PushEngage notifications aren't arriving on my iPhone." — runs the diagnostic flow.
 - "Audit my PushEngage setup." — runs the static audit.
+- "Add PushEngage in-app messages to this app" / "My in-app message never shows." — walks the in-app messaging setup or its troubleshooting checklist (SDK iOS 1.1.0+, Android 1.0.0+, Flutter 1.1.0+, React Native 1.1.0+).
 
 The plugin detects your platform automatically and hands off to the matching integration/debug skill.
 
@@ -58,7 +59,7 @@ This marketplace ships one plugin, `pushengage`, containing six skills:
 
 | Skill | Purpose |
 |---|---|
-| `pushengage` | Entry skill — detects platform and routes to the right spoke. |
+| `pushengage` | Entry skill — detects platform and routes to the right spoke; holds the cross-platform concepts, best practices, and in-app messaging semantics. |
 | `pushengage-ios` | iOS integration and debugging. |
 | `pushengage-android` | Android integration and debugging. |
 | `pushengage-flutter` | Flutter integration and debugging. |

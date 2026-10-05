@@ -4,15 +4,17 @@ Single source of truth for Flutter-SDK-version-pinned data. Other files in this 
 
 ## Current stable version
 
-**Flutter plugin (`pushengage_flutter_sdk`):** `1.0.0` — pinned via `^1.0.0` in `pubspec.yaml`.
+**Flutter plugin (`pushengage_flutter_sdk`):** `1.1.0` — pinned via `^1.1.0` in `pubspec.yaml`.
+
+> **Release note (2026-10-02):** `1.1.0` adds **In-App Messaging** — `triggerIAMEvent(...)`, the `onIAMCustomAction` stream, and the `IAMCustomAction` model — and bumps the transitive natives to iOS `PushEngage 1.1.0` / Android `1.0.0`. No Dart init change, no manifest/Info.plist/AppDelegate change. **Breaking (iOS):** the plugin podspec and native pods now require deployment target **iOS 15.0** (was 12.0) — Podfiles below `platform :ios, '15.0'` fail at `pod install` (KI-F013). Minimum Flutter SDK is now `>=3.22.2`. Also fixes plugin registration under the UIScene life cycle (iOS 27 SDK / Flutter 3.35+) — no integration change needed. See `in-app-messaging.md`.
 
 **Native dependencies pulled transitively** (do NOT add these directly in the customer's Podfile `Runner` target or Android dependencies block):
 
 | Layer | Coordinate | Version |
 |---|---|---|
-| iOS pod (app target, transitive via plugin's podspec) | `PushEngage` | `1.0.0` (pinned exactly, no `~>`) |
-| iOS pod (extension targets, transitive via `PushEngage` → `PushEngageExtension`) | `PushEngageExtension` | `1.0.0` |
-| Android library (transitive via the plugin) | `com.github.awesomemotive:pushengage-android-sdk` | `0.1.0` |
+| iOS pod (app target, transitive via plugin's podspec) | `PushEngage` | `1.1.0` (pinned exactly, no `~>`) |
+| iOS pod (extension targets, transitive via `PushEngage` → `PushEngageExtension`) | `PushEngageExtension` | `1.1.0` |
+| Android library (transitive via the plugin) | `com.github.awesomemotive:pushengage-android-sdk` | `1.0.0` |
 
 As of iOS native `1.0.0` the iOS pod is **split in two**: the app `Runner` target gets `PushEngage` (transitively, via the plugin's podspec), while the NSE/NCE extension targets get `PushEngageExtension` (the extension-safe pod, which `PushEngage` depends on). See `install.md`, `nse-setup.md`, and `nce-setup.md`.
 
@@ -22,25 +24,25 @@ All methods are `static` on the `PushEngage` class. Async methods return `Future
 
 ### Setup
 
-| Method | `1.0.0` | Notes |
+| Method | `1.1.0` | Notes |
 |---|---|---|
 | `setAppId(String appId) → Future<void>` | ✅ | Call from `main()` AFTER `WidgetsFlutterBinding.ensureInitialized()` and BEFORE `runApp(...)`. (FLUTTER-BP-01.) Now also forwards the plugin version (`sdkVersion`) over the channel for attribution. |
 | `setEnvironment(Environment environment) → Future<void>` | ✅ | **NEW.** Switches between `Environment.staging` and `Environment.production` backends. Must be called BEFORE `setAppId` — the native Android SDK caches its base URLs when the app id is set. Defaults to production; omit entirely for normal integrations. |
 | `setBadgeCount(int count) → Future<void>` | ✅ | Pass `0` to clear. Values outside the 32-bit int range are coerced to `0`. iOS uses the system badge (iOS 16+ API with a fallback); Android applies it to subsequent notifications. |
-| `getSdkVersion() → String` | ✅ | Returns `"1.0.0"` (the Flutter plugin version, NOT the underlying native SDK version). iOS native also ships `getSdkVersion` now (KI-005 fixed); cross-platform parity holds. |
+| `getSdkVersion() → String` | ✅ | Returns `"1.1.0"` (the Flutter plugin version, NOT the underlying native SDK version). iOS native also ships `getSdkVersion` now (KI-005 fixed); cross-platform parity holds. |
 | `setSmallIconResource(String resourceName) → Future<void>` | ✅ Android only | No-op on iOS (guarded by `Platform.isAndroid`). |
 | `enableLogging(bool shouldEnable) → void` | ✅ sync | Toggles Dart-side `DebugLogger` and native logging. Gate behind `kDebugMode` (FLUTTER-BP-05). |
 
 ### Permissions
 
-| Method | `1.0.0` | Notes |
+| Method | `1.1.0` | Notes |
 |---|---|---|
 | `requestNotificationPermission() → Future<PushEngageResult<bool>>` | ✅ | BOTH platforms return the actual grant boolean — the future resolves after the user responds to the prompt (already-decided permission resolves immediately with the current state). Errors are swallowed to `success(false)`, never a `failure`. `getNotificationPermissionStatus()` remains the way to poll the current state later. |
 | `getNotificationPermissionStatus() → Future<PushEngageResult<String>>` | ✅ | Android returns `"granted"` or `"denied"`. iOS additionally returns `"notYetRequested"` when permission has not been requested yet. The Dart layer passes the native string through (defaults to `"denied"` only on null). |
 
 ### Subscription
 
-| Method | `1.0.0` | Notes |
+| Method | `1.1.0` | Notes |
 |---|---|---|
 | `subscribe() → Future<PushEngageResult<bool>>` | ✅ | Auto-called on permission grant; rarely needs manual invocation. |
 | `unsubscribe() → Future<PushEngageResult<bool>>` | ✅ | |
@@ -49,7 +51,7 @@ All methods are `static` on the `PushEngage` class. Async methods return `Future
 
 ### Subscriber identity
 
-| Method | `1.0.0` | Notes |
+| Method | `1.1.0` | Notes |
 |---|---|---|
 | `getSubscriberId() → Future<PushEngageResult<String?>>` | ✅ | The subscriber hash. Treat as PII (FLUTTER-BP-07). |
 | `getSubscriberDetails(List<String>? values) → Future<PushEngageResult<Map<String, dynamic>?>>` | ✅ | Now accepts `null`/empty to fetch all fields, and returns a **failure** when the user is not subscribed — callers must handle the failure path. |
@@ -60,7 +62,7 @@ All methods are `static` on the `PushEngage` class. Async methods return `Future
 
 ### Attributes
 
-| Method | `1.0.0` | Notes |
+| Method | `1.1.0` | Notes |
 |---|---|---|
 | `getSubscriberAttributes() → Future<PushEngageResult<Map<String, dynamic>>>` | ✅ | |
 | `addSubscriberAttributes(Map<String, dynamic> attributes) → Future<PushEngageResult<String?>>` | ✅ | Replaces existing keys (merge-style). |
@@ -69,7 +71,7 @@ All methods are `static` on the `PushEngage` class. Async methods return `Future
 
 ### Segments
 
-| Method | `1.0.0` | Notes |
+| Method | `1.1.0` | Notes |
 |---|---|---|
 | `addSegment(List<String> segments) → Future<PushEngageResult<String?>>` | ✅ | |
 | `removeSegment(List<String> segments) → Future<PushEngageResult<String?>>` | ✅ | |
@@ -77,7 +79,7 @@ All methods are `static` on the `PushEngage` class. Async methods return `Future
 
 ### Events / campaigns
 
-| Method | `1.0.0` | Notes |
+| Method | `1.1.0` | Notes |
 |---|---|---|
 | `sendTriggerEvent(TriggerCampaign trigger) → Future<PushEngageResult<String?>>` | ✅ | Parameter is named `trigger`. |
 | `trackEvent(TrackEventPayload event) → Future<PushEngageResult<String?>>` | ✅ | `event.eventName` must be non-empty — `TrackEventPayload.toMap()` throws `ArgumentError` synchronously otherwise. Native defaults `provider`/`eventType` when omitted. |
@@ -85,16 +87,23 @@ All methods are `static` on the `PushEngage` class. Async methods return `Future
 | `addAlert(TriggerAlert alert) → Future<PushEngageResult<String?>>` | ✅ | `expiryTimestamp` now serializes as UTC ISO-8601 truncated to millisecond precision (`...HH:mm:ss.SSS` + `Z`). |
 | `automatedNotification(TriggerStatusType status) → Future<PushEngageResult<String?>>` | ✅ | `status` is enum `TriggerStatusType.enabled` / `.disabled`. |
 
+### In-App Messaging (new in 1.1.0)
+
+| Method | `1.1.0` | Notes |
+|---|---|---|
+| `triggerIAMEvent(String eventName, [Map<String, dynamic>? parameters]) → Future<PushEngageResult<String?>>` | ✅ NEW | Custom IAM trigger. Positional optional `parameters`; values should be `String`/`num`/`bool` (other types diverge per platform: Android `toString()`s them, iOS drops the key). Success `data` = native message string (`"In-app message event triggered successfully"`) — means the event was accepted, NOT that a message was shown. Empty name → `failure` wrapping a `PlatformException` with code `400`, message `Event name is required`. Values are stringified natively before matching; Android drops `null` values. Works without a push subscription. See `in-app-messaging.md`. |
+| `static Stream<IAMCustomAction> get onIAMCustomAction` | ✅ NEW | Broadcast stream of `custom` IAM button taps. Lazily wires the channel handler on first access; no enable/disable call. Cancel the `StreamSubscription` in `dispose()` (FLUTTER-BP-11). Not buffered for cold boot — by design, a tap can't precede Dart being up. |
+
 ### Diagnostics
 
-| Method | `1.0.0` | Notes |
+| Method | `1.1.0` | Notes |
 |---|---|---|
 | `getInitialNotification() → Future<PushEngageResult<Map<String, dynamic>?>>` | ✅ | Recovers the notification that **cold-launched** the app (iOS, force-quit → tap) before Dart could subscribe to `deepLinkStream`. Idempotent drain: resolves `null` on Android and on every call after the first. Call once on startup (see `init-code.md`). |
 | `runConfigValidation(String senderId, String projectId) → Future<PushEngageResult<bool>>` | ✅ Android only | Validates the device's FCM config (sender id / project id) against the dashboard. Always resolves `true` on iOS. Diagnostic only — not part of the permission flow. |
 
 ### Streams
 
-| Member | `1.0.0` | Notes |
+| Member | `1.1.0` | Notes |
 |---|---|---|
 | `static Stream<Map<String, dynamic>?> get deepLinkStream` | ✅ | Broadcast stream. Lazy-initialized on first access — register listener in root widget's `initState` BEFORE any async startup work (FLUTTER-BP-02, KI-F003). Map shape: `{'deepLink': '<url-string>', ...}`; `data` is now always a `Map` on both platforms (Android no longer delivers a JSON string). **Cold-boot taps are NOT delivered here** — use `getInitialNotification()`. |
 | `static Stream<FcmConfigError> get onFcmConfigError` | ✅ Android only | Emits `FcmConfigError` on an FCM sender-id/project-id mismatch or invalid local config. Never emits on iOS. |
@@ -114,6 +123,7 @@ All model types are re-exported from the package root (`lib/pushengage_flutter_s
 | `TriggerAlert(...)` | Named parameters | `expiryTimestamp` serializes as UTC ISO-8601 (millisecond precision + `Z`). |
 | `DynamicSegment(...)` | Named parameters | Used by `addDynamicSegment`. |
 | `TriggerStatusType` (enum) | `.enabled`, `.disabled` | Used by `automatedNotification`. |
+| `IAMCustomAction` | `const IAMCustomAction({required String actionId, required Map<String, String> parameters})` | **NEW (1.1.0).** Emitted by `onIAMCustomAction`. **Route on `parameters['action']`** (the dashboard Action name); `actionId` is a dashboard-generated internal key (e.g. `t04B05`). `parameters` values are always `String` (stringified natively). Exported from the package barrel. |
 
 TriggerCampaign, DynamicSegment, IdentifyFields, and TrackEventPayload implement the `Mappable` interface; Goal and TriggerAlert each expose a public toMap() but do NOT implement Mappable.
 
@@ -126,9 +136,9 @@ TriggerCampaign, DynamicSegment, IdentifyFields, and TrackEventPayload implement
 
 | Layer | Minimum |
 |---|---|
-| Flutter SDK | `>=3.3.0` |
+| Flutter SDK | `>=3.22.2` (raised in `1.1.0`; was `>=3.3.0`) |
 | Dart | `>=3.4.3 <4.0.0` |
-| iOS deployment target | `12.0` — the plugin podspec now declares `12.0`, matching the `PushEngage`/`PushEngageExtension` pods (both `12.0`). The SDK example app sets `platform :ios, '13.0'` in its Podfile. Use `12.0` as the floor; `13.0` is fine. |
+| iOS deployment target | `15.0` — the plugin podspec (`s.platform = :ios, '15.0'`) and the transitive `PushEngage`/`PushEngageExtension` `1.1.0` pods all require iOS 15.0. `flutter pub get` doesn't check it, so the constraint surfaces at `pod install` — set `platform :ios, '15.0'` in `ios/Podfile` and the `Runner` deployment target (KI-F013 / FLUTTER-AUDIT-15). The SDK example app uses `15.0`. |
 | Android `minSdk` | `21` (the plugin's minimum). Native PushEngage Android SDK supports down to API 16, but the Flutter plugin caps at 21. |
 | Android `compileSdk` | `34` |
 
@@ -148,10 +158,10 @@ Some earlier setup guides show these older values. Use this matrix as the source
 
 | Public doc value | Actual current value | Audit ref |
 |---|---|---|
-| `pushengage_flutter_sdk: ^0.0.1` in pubspec | `^1.0.0` | FLUTTER-AUDIT-01 / KI-F001 |
-| `pod 'PushEngage', '~>0.0.4'` in NSE Podfile snippet | `pod 'PushEngageExtension', '1.0.0'` | FLUTTER-AUDIT-03 / KI-F011 |
-| `pod 'PushEngage', '0.0.4'` in NCE Podfile snippet | `pod 'PushEngageExtension', '1.0.0'` | FLUTTER-AUDIT-03 |
-| NSE deployment target "iOS 10+" | iOS 12 recommended (matches the pods' `12.0` floor) | — |
+| `pushengage_flutter_sdk: ^0.0.1` in pubspec | `^1.1.0` | FLUTTER-AUDIT-01 / KI-F001 |
+| `pod 'PushEngage', '~>0.0.4'` in NSE Podfile snippet | `pod 'PushEngageExtension', '1.1.0'` | FLUTTER-AUDIT-03 / KI-F011 |
+| `pod 'PushEngage', '0.0.4'` in NCE Podfile snippet | `pod 'PushEngageExtension', '1.1.0'` | FLUTTER-AUDIT-03 |
+| NSE deployment target "iOS 10+" | iOS 15 (matches the pods' `15.0` floor from `1.1.0`) | — |
 
 ## Package channels
 
@@ -162,7 +172,7 @@ Some earlier setup guides show these older values. Use this matrix as the source
 
 ## Known-issue version bounds
 
-Maintained in `pushengage-debug/known-issues.md`. Flutter entries use IDs `KI-F001..KI-F012`. Each row references this matrix's `1.0.0` plugin baseline (with underlying native pins `PushEngage 1.0.0` + `PushEngageExtension 1.0.0` / `pushengage-android-sdk 0.1.0`).
+Maintained in `pushengage-debug/known-issues.md`. Flutter entries use IDs `KI-F001..KI-F014`. Each row references this matrix's `1.1.0` plugin baseline (with underlying native pins `PushEngage 1.1.0` + `PushEngageExtension 1.1.0` / `pushengage-android-sdk 1.0.0`).
 
 ---
 
@@ -174,3 +184,4 @@ Maintained in `pushengage-debug/known-issues.md`. Flutter entries use IDs `KI-F0
 4. Check if the transitive native pins changed (the plugin's iOS `PushEngage` pod dependency, the plugin's Android `implementation` dependency). If they bumped, sync this matrix's "Native dependencies" table.
 5. Add or close known-issue rows in `pushengage-debug/known-issues.md` (KI-F00x entries).
 6. Update `references.md` if the GitHub release tag URL changes.
+7. Re-verify the IAM surface (`triggerIAMEvent`, `onIAMCustomAction`, `IAMCustomAction`) against `in-app-messaging.md` and the iOS deployment-target floor.

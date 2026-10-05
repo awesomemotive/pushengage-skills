@@ -8,7 +8,7 @@ Add (or update) the dependency:
 
 ```yaml
 dependencies:
-  pushengage_flutter_sdk: ^1.0.0
+  pushengage_flutter_sdk: ^1.1.0
 ```
 
 Then:
@@ -17,13 +17,13 @@ Then:
 flutter pub get
 ```
 
-> ⚠️ **Use `^1.0.0`** — the current published version (see `version-matrix.md`). Older pins like `^0.0.1` (seen in some earlier setup guides) are missing most of the modern API (`requestNotificationPermission`, `subscribe`, `unsubscribe`, `addSubscriberAttributes`, segments, triggers, etc.), so an app on `^0.0.1` hits "no such method" runtime errors. (FLUTTER-AUDIT-01 / KI-F001.)
+> ⚠️ **Use `^1.1.0`** — the current published version (see `version-matrix.md`). Older pins like `^0.0.1` (seen in some earlier setup guides) are missing most of the modern API (`requestNotificationPermission`, `subscribe`, `unsubscribe`, `addSubscriberAttributes`, segments, triggers, etc.), so an app on `^0.0.1` hits "no such method" runtime errors. (FLUTTER-AUDIT-01 / KI-F001.)
 
 If the customer already has `pushengage_flutter_sdk: ^0.0.1` (or any pre-`1.0.0`) pinned, bump it:
 
 ```yaml
 dependencies:
-  pushengage_flutter_sdk: ^1.0.0   # bumped from ^0.0.1 — see KI-F001
+  pushengage_flutter_sdk: ^1.1.0   # bumped from ^0.0.1 — see KI-F001
 ```
 
 Then `flutter pub upgrade pushengage_flutter_sdk`.
@@ -76,7 +76,7 @@ allprojects {
 }
 ```
 
-> Note: the JitPack dependency is pulled transitively by the Flutter plugin. If `jitpack.io` is missing from every repositories list Gradle consults (e.g., `FAIL_ON_PROJECT_REPOS` without a `settings.gradle` entry), the build fails with "Could not find com.github.awesomemotive:pushengage-android-sdk:0.1.0".
+> Note: the JitPack dependency is pulled transitively by the Flutter plugin. If `jitpack.io` is missing from every repositories list Gradle consults (e.g., `FAIL_ON_PROJECT_REPOS` without a `settings.gradle` entry), the build fails with "Could not find com.github.awesomemotive:pushengage-android-sdk:1.0.0".
 
 ### Step 2c — `android/app/build.gradle` (app-level)
 
@@ -159,10 +159,10 @@ pod install
 
 ### Step 3b — `ios/Podfile`
 
-Set the iOS platform version and add a `post_install` block. Canonical Podfile (the SDK example app also adds an explicit `pod 'PushEngage', '1.0.0'` to `Runner`, which is harmless when pinned to the same version — see Step 3c):
+Set the iOS platform version and add a `post_install` block. Canonical Podfile (the SDK example app also adds an explicit `pod 'PushEngage', '1.1.0'` to `Runner`, which is harmless when pinned to the same version — see Step 3c):
 
 ```ruby
-platform :ios, '13.0'
+platform :ios, '15.0'
 
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
@@ -188,15 +188,15 @@ post_install do |installer|
 end
 ```
 
-> As of iOS SDK 1.0.0 the SDK is split into the app pod `PushEngage` and the extension-safe pod `PushEngageExtension`. The extension targets link only `PushEngageExtension`, so the old `APPLICATION_EXTENSION_API_ONLY = 'No'` override is no longer needed — the SDK removed the conditional-compilation mechanism that required it. The `EXCLUDED_ARCHS` and `IPHONEOS_DEPLOYMENT_TARGET` overrides are likewise no longer required (the SDK podspecs carry no arch exclusions and declare `12.0`).
+> As of iOS SDK 1.0.0 the SDK is split into the app pod `PushEngage` and the extension-safe pod `PushEngageExtension`. The extension targets link only `PushEngageExtension`, so the old `APPLICATION_EXTENSION_API_ONLY = 'No'` override is no longer needed — the SDK removed the conditional-compilation mechanism that required it. The `EXCLUDED_ARCHS` and `IPHONEOS_DEPLOYMENT_TARGET` overrides are likewise no longer required (the SDK podspecs carry no arch exclusions and, from `1.1.0`, declare `15.0`).
 
-> Keep `platform :ios, '13.0'` (or `'12.0'`) at the top of the Podfile. If a customer's existing Podfile carries the old overrides, they are harmless but can be removed.
+> Keep `platform :ios, '15.0'` at the top of the Podfile — anything below `'15.0'` no longer resolves against plugin `1.1.0` / `PushEngage 1.1.0` (KI-F013 / FLUTTER-AUDIT-15). If a customer's existing Podfile carries the old overrides, they are harmless but can be removed.
 
 ### Step 3c — Adding `pod 'PushEngage'` to the `Runner` target is redundant
 
-The Flutter plugin's own podspec pins `pod 'PushEngage', '1.0.0'` transitively, so you do NOT need to add it to the `Runner` target. The SDK's own example Podfile does include an explicit `pod 'PushEngage', '1.0.0'` in `Runner` and builds fine — an explicit line pinned to the SAME version is harmless. Only remove or avoid it if it pins a DIFFERENT version than the plugin's transitive `1.0.0`, which risks a version mismatch. (FLUTTER-BP-06 / FLUTTER-AUDIT-10.)
+The Flutter plugin's own podspec pins `pod 'PushEngage', '1.1.0'` transitively, so you do NOT need to add it to the `Runner` target. The SDK's own example Podfile does include an explicit `pod 'PushEngage', '1.1.0'` in `Runner` and builds fine — an explicit line pinned to the SAME version is harmless. Only remove or avoid it if it pins a DIFFERENT version than the plugin's transitive `1.1.0`, which risks a version mismatch. (FLUTTER-BP-06 / FLUTTER-AUDIT-10.)
 
-NSE and NCE Podfile target blocks need the explicit `pod 'PushEngageExtension', '1.0.0'` line (NOT `pod 'PushEngage'`) — those targets don't go through Flutter's plugin resolution and must link the extension-safe pod. See `nse-setup.md` and `nce-setup.md`.
+NSE and NCE Podfile target blocks need the explicit `pod 'PushEngageExtension', '1.1.0'` line (NOT `pod 'PushEngage'`) — those targets don't go through Flutter's plugin resolution and must link the extension-safe pod. See `nse-setup.md` and `nce-setup.md`.
 
 ### Step 3d — `ios/Runner/Info.plist`
 
@@ -228,10 +228,10 @@ Add these keys (most are added automatically by Xcode when enabling Push Notific
 
 Authoritative pins (cross-check with `version-matrix.md`):
 
-- **Flutter plugin:** `pushengage_flutter_sdk: ^1.0.0`
-- **iOS pod (app, transitive, do not redeclare in `Runner`):** `PushEngage 1.0.0`
-- **iOS pod (in NSE / NCE targets):** `pod 'PushEngageExtension', '1.0.0'`
-- **Android library (transitive):** `com.github.awesomemotive:pushengage-android-sdk:0.1.0`
+- **Flutter plugin:** `pushengage_flutter_sdk: ^1.1.0`
+- **iOS pod (app, transitive, do not redeclare in `Runner`):** `PushEngage 1.1.0` (requires `platform :ios, '15.0'`)
+- **iOS pod (in NSE / NCE targets):** `pod 'PushEngageExtension', '1.1.0'`
+- **Android library (transitive):** `com.github.awesomemotive:pushengage-android-sdk:1.0.0`
 - **`google-services` plugin:** `4.4.2`
 - **Firebase BOM:** `33.5.1`
 

@@ -1,11 +1,11 @@
 ---
 name: pushengage-react-native
-description: Use ONLY when the active repo is a React Native app (`package.json` with `react-native` dep, typically alongside `ios/` and `android/` folders, Turbo Modules / New Architecture). Handles full PushEngage integration end-to-end (JS init + Android native config + iOS native config + NSE) plus debugging existing integrations. Do not use for native iOS, native Android, or Flutter apps even if PushEngage is mentioned.
+description: Use ONLY when the active repo is a React Native app (`package.json` with `react-native` dep, typically alongside `ios/` and `android/` folders, Turbo Modules / New Architecture). Handles full PushEngage integration end-to-end (JS init + Android native config + iOS native config + NSE, plus in-app messaging) and debugging existing integrations. Do not use for native iOS, native Android, or Flutter apps even if PushEngage is mentioned.
 license: MIT
 compatibility: Works with any agent that supports the Agent Skills (SKILL.md) standard, including Claude Code and Cowork. Needs filesystem read access and a shell to detect the project type; some steps fetch allowlisted documentation URLs.
 metadata:
   author: PushEngage
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # PushEngage — React Native Spoke
@@ -21,6 +21,7 @@ You're working in a React Native app. This skill walks the customer through inte
 | "Integrate PushEngage" / "Set up PushEngage" (greenfield or partial) | This file's "Integration flow" section below. |
 | "PushEngage isn't working" / specific symptom | Run static audit (`audit-checks.md`) first, then escalate to `../pushengage-debug/SKILL.md` for Phase 2/3 (skill: `pushengage-debug`). |
 | "Audit my PushEngage setup" | Read `audit-checks.md` and run the checks. |
+| "Set up / add in-app messages", "trigger an in-app message", "in-app message never shows", custom action buttons | Read `in-app-messaging.md` (JS API), then `../pushengage/in-app-messaging.md` for the platform-independent semantics. Requires `^1.1.0`. |
 | Concept / terminology question | Read `../pushengage/concepts.md`. |
 | Best practices / rule lookup | Read `best-practices.md` (RN-specific) or `../pushengage/best-practices.md` (cross-platform). |
 | API surface / "does method X exist" | Read `version-matrix.md` first; if not listed, fetch only URLs from `references.md`. |
@@ -35,7 +36,7 @@ Before touching anything, gather:
 
 1. **Target platforms** — does the customer ship to both stores, or just one? Look for `ios/` and `android/` folders.
 2. **React Native version** — read from `package.json`'s `dependencies."react-native"`. **Critical compatibility check:**
-   - RN `>= 0.78` → install latest SDK (`^1.0.0`).
+   - RN `>= 0.78` → install latest SDK (`^1.1.0`).
    - RN `< 0.78` → upgrade RN to 0.78+ (required — no supported SDK build for older RN; the Turbo Modules API requires it). See `version-matrix.md`.
 3. **Existing SDK pin** — does `package.json` already have `@pushengage/pushengage-react-native`? If so, what version?
 4. **`applicationId` (Android)** — read from `android/app/build.gradle`'s `defaultConfig.applicationId`.
@@ -67,7 +68,7 @@ Read `install.md`. Apply:
 
 - `package.json` — install via `npm install @pushengage/pushengage-react-native` (or yarn). **If RN < 0.78, upgrade RN to 0.78+ first — no supported SDK build for older RN.**
 - Android: `android/gradle.properties` (`newArchEnabled=true`), `android/build.gradle` (google-services classpath + jitpack repo), `android/app/build.gradle` (**MUST `apply plugin: "com.google.gms.google-services"`** in the app module — the buildscript classpath alone is not enough), `AndroidManifest.xml` (`POST_NOTIFICATIONS`), `google-services.json` placement.
-- iOS: `ios/Podfile` (`ENV['RCT_NEW_ARCH_ENABLED'] = '1'`, NSE/NCE target blocks with `pod 'PushEngageExtension', '1.0.0'` — the 1.0.0 two-pod split, no `APPLICATION_EXTENSION_API_ONLY` override needed), `Info.plist` (`PushEngage_App_Group_Key`, background modes), `cd ios && pod install`.
+- iOS: `ios/Podfile` (`ENV['RCT_NEW_ARCH_ENABLED'] = '1'`, NSE/NCE target blocks with `pod 'PushEngageExtension', '1.1.0'` — the 1.0.0 two-pod split, no `APPLICATION_EXTENSION_API_ONLY` override needed), `Info.plist` (`PushEngage_App_Group_Key`, background modes), `cd ios && pod install`.
 
 **Auto-edit + announce posture** for config files. Show the diff, then apply.
 
@@ -93,13 +94,17 @@ For Android: confirm `POST_NOTIFICATIONS` is in Manifest (Step 4a).
 
 #### 4d — NSE setup (iOS, required for rich notifications)
 
-If iOS target: read `nse-setup.md`. Walk through Xcode NSE target creation, deployment target iOS 15.1, Podfile target block with `pod 'PushEngageExtension', '1.0.0'` (the extension-safe pod from the 1.0.0 two-pod split, NOT `pod 'PushEngage', '~>0.0.5'`), App Groups capability on BOTH main and NSE targets, matching `PushEngage_App_Group_Key`.
+If iOS target: read `nse-setup.md`. Walk through Xcode NSE target creation, deployment target iOS 15.1, Podfile target block with `pod 'PushEngageExtension', '1.1.0'` (the extension-safe pod from the 1.0.0 two-pod split, NOT `pod 'PushEngage', '~>0.0.5'`), App Groups capability on BOTH main and NSE targets, matching `PushEngage_App_Group_Key`.
 
 **Skip entirely if Android-only.**
 
 #### 4e — NCE setup (optional)
 
 Default: SKIP. Read `nce-setup.md` if customer asks for custom in-notification UI.
+
+#### 4f — In-App Messaging — OPTIONAL
+
+Read `in-app-messaging.md` only if the customer asks for in-app messages (or already has IAM campaigns on the dashboard). Default: skip; mention it exists in one line. IAM needs nothing beyond `setAppId` in Part 4b — no native edits, no activation call. Optional code: an `onIAMCustomAction` subscription next to `onValueChanged` in the root `useEffect` (diff + confirm) and `triggerIAMEvent` calls at the product moments the campaigns key off. Verification does **not** need a real device.
 
 ### Part 5 — Verification
 
@@ -129,7 +134,7 @@ Short message. Pick 2–3 rules applicable to what you integrated:
 Escalate to `pushengage-debug/SKILL.md` when:
 
 - "Module 'pushengage-react-native' could not be resolved" → RN-AUDIT-01 / KI-RN001 (stale import name).
-- "iOS build fails with 'Application extensions cannot use PushEngage'" → RN-AUDIT-03 (extension target links `pod 'PushEngage'` instead of `pod 'PushEngageExtension', '1.0.0'`). The old `APPLICATION_EXTENSION_API_ONLY` override / KI-RN002 path is obsolete in 1.0.0 (two-pod split).
+- "iOS build fails with 'Application extensions cannot use PushEngage'" → RN-AUDIT-03 (extension target links `pod 'PushEngage'` instead of `pod 'PushEngageExtension', '1.1.0'`). The old `APPLICATION_EXTENSION_API_ONLY` override / KI-RN002 path is obsolete in 1.0.0 (two-pod split).
 - "iOS build fails with '@import' / c++ modules disabled" → KI-RN008. Note: the `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES` override this depended on is obsolete in 1.0.0 (two-pod split); the app target's `@import PushEngage` resolves without it.
 - "Rich-push image doesn't load" → RN-AUDIT-03 (stale pod pin) and RN-AUDIT-09 (App Groups).
 - "Cold-boot deep link is lost" → RN-AUDIT-12 (listener registered too late) / RN-AUDIT-17 (missing `getInitialNotification`) / KI-RN003. 1.0.0 provides the `getInitialNotification()` recovery API for iOS.
@@ -137,6 +142,9 @@ Escalate to `pushengage-debug/SKILL.md` when:
 - "Permission dialog never shows on Android" → RN-AUDIT-05 / KI-RN004.
 - "Android push never arrives, FCM token never registers" → RN-AUDIT-15 / KI-RN010 (missing google-services plugin apply).
 - "iOS build crashes with Turbo Module error after `npm install`" → RN-AUDIT-14 / KI-RN009 (RN/SDK version mismatch).
+- "`PushEngage.triggerIAMEvent is not a function`" → stale `1.0.x` install; bump to `^1.1.0`, reinstall, `pod install`.
+- "`PushEngage.setIAMCustomActionHandlerEnabled is not a function`" → RN-AUDIT-20 / KI-RN015 (internal method; subscribe to `onIAMCustomAction` directly).
+- "In-app message never appears" / "in-app button does nothing" / "`onIAMCustomAction` never fires" → diagnostic tree Branch 8 + `in-app-messaging.md`.
 
 ## Edit posture per file class
 
@@ -162,12 +170,13 @@ The RN spoke references content files from the iOS and Android spokes to avoid d
 
 - **Don't import from `'pushengage-react-native'`** (missing scope). Always `'@pushengage/pushengage-react-native'`. RN-AUDIT-01.
 - **Don't invent PushEngage method names.** Check `version-matrix.md`. If unsure, fetch an allowlisted URL from `references.md`. If still unsure, say so.
-- **Use `version-matrix.md` as the source of truth for the package name and pod pins** — scoped import, and `PushEngageExtension 1.0.0` for NSE/NCE targets.
+- **Use `version-matrix.md` as the source of truth for the package name and pod pins** — scoped import, and `PushEngageExtension 1.1.0` for NSE/NCE targets.
 - **Don't copy the SDK's example app verbatim.** It has two known gaps: missing `POST_NOTIFICATIONS` in Manifest, unconditional `enableLogging(true)`. (It DOES apply `com.google.gms.google-services` — that step is still required in customer apps.) The skill's `install.md` and `init-code.md` cover the correct patterns.
 - **Don't auto-edit `index.js` or `AppDelegate.mm` without showing the diff and getting confirmation.** Entry-point code is diff + confirm.
 - **Don't touch files outside integration scope.**
 - **Don't fetch URLs not in `references.md`.**
 - **Don't ask the customer for Service Account JSON or `.p12` contents in chat.** Both are secrets — they upload directly to the dashboard.
-- **Don't add `pod 'PushEngage'` to the main app target in Podfile.** Pulled transitively. NSE / NCE target blocks get `pod 'PushEngageExtension', '1.0.0'` (the extension-safe pod from the 1.0.0 two-pod split), not `pod 'PushEngage'`. RN-BP-06.
+- **Don't add `pod 'PushEngage'` to the main app target in Podfile.** Pulled transitively. NSE / NCE target blocks get `pod 'PushEngageExtension', '1.1.0'` (the extension-safe pod from the 1.0.0 two-pod split), not `pod 'PushEngage'`. RN-BP-06.
 - **Don't add a `MainApplication.kt` PushEngage init block** — the plugin handles it.
 - **Don't follow the SDK example app's unconditional `enableLogging(true)` pattern** — gate behind `__DEV__`.
+- **Don't call `setIAMCustomActionHandlerEnabled` or `getIAMDatabaseState` from JS** (RN-BP-15) and don't call `setIAMCustomActionHandler` from native code — the module owns the native handler. Don't invent the dashboard click-path for creating IAM campaigns.

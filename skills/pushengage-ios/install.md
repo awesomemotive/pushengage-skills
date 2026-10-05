@@ -38,7 +38,7 @@ Auto-edit the Podfile to add the PushEngage dependency for the app target:
 ```ruby
 target 'YourMainTarget' do
   use_frameworks!
-  pod 'PushEngage', '1.0.0'
+  pod 'PushEngage', '1.1.0'
 end
 ```
 
@@ -68,7 +68,7 @@ Then open the generated `.xcworkspace` (not `.xcodeproj`) in Xcode.
 
 ## Version pin
 
-Always pin **exactly** to the version in `version-matrix.md` (currently `1.0.0`). Do not use `~>` or other range operators (violates XP-BP-06). This applies to both pods: `pod 'PushEngage', '1.0.0'` on the app target and `pod 'PushEngageExtension', '1.0.0'` on any NSE/NCE target.
+Always pin **exactly** to the version in `version-matrix.md` (currently `1.1.0`; requires deployment target iOS 15.0+). Do not use `~>` or other range operators (violates XP-BP-06). This applies to both pods: `pod 'PushEngage', '1.1.0'` on the app target and `pod 'PushEngageExtension', '1.1.0'` on any NSE/NCE target.
 
 ## Sanity check
 

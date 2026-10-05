@@ -34,6 +34,22 @@ Look for the network log pair for the add-subscriber call: `Request URL : …sub
 
 When a push arrives, the SDK logs receipt. If campaign appears "Delivered to APNs" on the dashboard but no "Notification received" log appears → device-side filter (Branch 1.3.1).
 
+### In-app messaging (iOS, SDK ≥ 1.1.0)
+
+Info/debug lines print to stdout (Xcode console) with `enableLogging`; **errors go to `os_log`** regardless of the flag — a campaign sync that fails with an HTTP error is visible only in the error stream. Capture both when debugging IAM:
+
+```bash
+xcrun simctl launch --console-pty <udid> <bundle-id>
+xcrun simctl spawn <udid> log stream --level debug --predicate 'eventMessage CONTAINS "PushEngage"'
+```
+
+What to look for:
+- **Per-campaign evaluation lines** on app open / `triggerIAMEvent` — each skipped campaign is logged with its id and the reason (date window, frequency cap, audience, deferred subscriber state, malformed trigger). This is the primary "why didn't it show" oracle.
+- **Campaign store snapshot** once per session on app open (counts + per-campaign trigger / position / display count / actions / HTML) — confirms what synced.
+- `CoreData model not found in resource bundle — in-app messaging persistence is disabled` → KI-011.
+- A `BGTaskSchedulerPermittedIdentifiers` / `com.pushengage.iam.refresh` error line at launch → background refresh not opted in (KI-010, harmless).
+- Sync failures now include the HTTP status (error stream).
+
 ## What NOT to share
 
 If asking the customer to paste logs in chat, instruct them to **redact**:
@@ -113,6 +129,18 @@ When a push arrives, `PEFirebaseMessagingService.onMessageReceived` logs `From: 
 - App force-stopped by user (Android won't deliver FCM to force-stopped apps).
 - Battery optimization / Doze mode.
 
+### In-app messaging (Android, SDK ≥ 1.0.0)
+
+All under tag `PushEngage` (lines are prefixed `PushEngage: `). Call `enableLogging(true)` **before** `Builder.build()` so IAM init is logged.
+
+- `IAM Database Summary` — dump of synced campaigns at IAM init (counts, per-campaign trigger / position / display count / actions / HTML). Absent → nothing synced yet, or logging enabled after `build()`.
+- `Found N eligible messages for: <event>` / `No messages found for trigger: <event>` — result of a `triggerIAMEvent` (or the app-open evaluation). `No messages found` with a campaign you expect → trigger name mismatch or the campaign isn't synced.
+- `Eligible message: <id>, priority: N` — a campaign passed date window, frequency and audience and was queued.
+- `Setting up auto-dismiss for N seconds` — the message was presented.
+- `IAM subscriber state applied: N segment(s)…` — subscriber-data audience rules are now evaluable (device is a push subscriber).
+- `No custom action handler set` — a `custom` button was tapped with no `setIAMCustomActionHandler` registered (ANDROID-BP-16).
+- WorkManager scheduling failure lines → periodic 6 h sync unavailable (host disabled WorkManager's default initializer); sync still runs on app open.
+
 ## What NOT to share (Android)
 
 When asking the customer to paste `adb logcat` output, instruct them to redact:
@@ -188,6 +216,12 @@ If the customer expects a deep link and this log does NOT appear after a notific
 - `deepLinkStream.listen(...)` wasn't called yet (FLUTTER-BP-02 / KI-F003) — see diagnostic-tree Branch 3.4.
 - The notification payload didn't include a deep link field (`pe.dl` / `pe.u`). Compare against a working notification's `userInfo`.
 
+### In-app messaging (Flutter, plugin ≥ 1.1.0)
+
+- Dart side: the method-channel marker `PushEngage#triggerIAMEvent` confirms the Dart call reached native. A `failure` result with `PlatformException(400, Event name is required)` means a blank event name.
+- Native side: the iOS / Android IAM lines above (evaluation reasons, `Eligible message`, `IAM Database Summary`). The plugin adds no IAM logging of its own beyond the channel marker.
+- `onIAMCustomAction` deliveries are not logged by the plugin; add a `debugPrint` inside the listener while debugging.
+
 ## What NOT to share (Flutter)
 
 Same redactions as iOS and Android, plus:
@@ -248,6 +282,12 @@ When `onValueChanged` fires:
 - JS-side `console.log` from inside the customer's callback prints (if they have logging there).
 
 If the JS callback never fires but a notification with a deep link DID arrive on the device → the issue is listener registration timing (KI-RN003 / Branch 3.5).
+
+### In-app messaging (React Native, plugin ≥ 1.1.0)
+
+- The RN module logs nothing for IAM. Use the native iOS / Android IAM lines above (evaluation reasons, `Eligible message`, `IAM Database Summary`).
+- A rejected `triggerIAMEvent` promise carries `.code` (`"400"` for a blank name) and `.message`; log them in the `catch`.
+- `TypeError: PushEngage.setIAMCustomActionHandlerEnabled is not a function` → KI-RN015; `PushEngage.triggerIAMEvent is not a function` → plugin `< 1.1.0` resolved.
 
 ## What NOT to share (React Native)
 

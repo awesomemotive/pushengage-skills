@@ -121,6 +121,38 @@ iOS-specific rules. Cite by rule ID in audit findings and debugging output. Cros
 
 **How to apply:** Mention during install step; audit when build failures present.
 
+## IOS-BP-14 — `setInitialInfo` must run synchronously inside `didFinishLaunchingWithOptions` (IAM background refresh depends on it)
+
+**Rule:** Keep `PushEngage.setInitialInfo(for:with:)` inside `application(_:didFinishLaunchingWithOptions:)` and don't defer it (no `DispatchQueue.async`, no SceneDelegate, no lazy first-screen call). SwiftUI `App`-lifecycle apps need an `@UIApplicationDelegateAdaptor` to have that hook at all — the `init-code.md` templates already do this.
+
+**Why:** From `1.1.0` the in-app-messaging controller is first constructed inside `setInitialInfo`, and it registers the optional `BGTaskScheduler` refresh task at that moment. iOS only accepts launch-handler registration before `didFinishLaunching` returns; anything later means background refresh never registers (and IOS-BP-01's init-order reasoning applies as before).
+
+**How to apply:** Covered by IOS-AUDIT-03 (init order). Additionally flag a `setInitialInfo` call wrapped in an async dispatch, or living outside the AppDelegate, as Worth fixing.
+
+## IOS-BP-15 — IAM background refresh is opt-in and needs both halves
+
+**Rule:** To let in-app campaigns refresh in the background, add **both** `BGTaskSchedulerPermittedIdentifiers` = `["com.pushengage.iam.refresh"]` to Info.plist **and** Background Modes → Background fetch (`UIBackgroundModes` contains `fetch`). Either half alone does nothing useful. Skip both if the customer is happy with refresh-on-app-open.
+
+**Why:** iOS refuses a background task identifier the app hasn't declared, and won't run app-refresh tasks without the fetch mode. With only one half, the SDK logs a single line at launch and falls back to refreshing on app open — not a failure, just wasted config. Scheduling is opportunistic; the ~6 h interval is an earliest-start, never a guarantee.
+
+**How to apply:** Audit check IOS-AUDIT-16 — flag the identifier present without `fetch` (or `fetch` present with the identifier missing while the customer says they want background refresh) as Worth fixing.
+
+## IOS-BP-16 — Register the IAM custom-action handler once, app-wide
+
+**Rule:** Call `PushEngage.setIAMCustomActionHandler` exactly once, in the AppDelegate right after `setInitialInfo`, and dispatch to the app's router from there. Capture `[weak self]` if the closure references a controller.
+
+**Why:** The handler is a single slot — every call replaces the previous closure, there is no getter and no removal, and the closure is retained for the process lifetime. Inside it, route on `parameters["action"]` (the dashboard Action name); `actionId` is an internal dashboard-generated key. A view controller registering its own handler in `viewDidLoad` silently disables the app-level one for every other screen, and campaigns with `custom` buttons can display on any screen.
+
+**How to apply:** Audit check IOS-AUDIT-17 — more than one `setIAMCustomActionHandler` call site, or one outside the AppDelegate, is Worth fixing.
+
+## IOS-BP-17 — Deployment target ≥ iOS 15.0 with SDK `1.1.0`
+
+**Rule:** Before bumping to `1.1.0`, confirm the app (and every extension target linking `PushEngageExtension`) has a deployment target of iOS 15.0 or higher. If the customer must keep iOS 12–14, they stay on `1.0.0` and don't get IAM — say so plainly.
+
+**Why:** `1.1.0` raised the minimum from 12.0 to 15.0 on both pods ("the lowest version Xcode 27 builds for", per the changelog). A lower target fails at `pod install` ("`PushEngage (1.1.0)` … does not support `iOS <target>`") or at SPM resolution (KI-009).
+
+**How to apply:** Audit check IOS-AUDIT-18.
+
 ---
 
 Spokes citing iOS rules: just write the rule ID (e.g., "violates IOS-BP-08, missing two of four delegate forwards"). Customer can click into this file for the why.
